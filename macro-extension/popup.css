@@ -7,7 +7,7 @@ body {
   color: #333;
 }
 
-/* CARD PRINCIPAL */
+/* Card principal */
 .card {
   background: white;
   border-radius: 12px;
@@ -16,7 +16,7 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* TABS */
+/* Tabs */
 .tabs {
   display: flex;
   margin-bottom: 15px;
@@ -38,7 +38,7 @@ body {
   border-bottom: 2px solid #0056b3;
 }
 
-/* CONTEÚDO DAS TABS */
+/* Conteúdo das tabs */
 .tab-content {
   display: none;
 }
@@ -47,7 +47,7 @@ body {
   display: block;
 }
 
-/* INPUTS */
+/* Inputs */
 input, .rich-editor {
   width: 100%;
   padding: 10px;
@@ -63,14 +63,14 @@ input:focus,
   outline: none;
 }
 
-/* EDITOR RICH TEXT */
+/* Editor de texto */
 .rich-editor {
   min-height: 120px;
   overflow-y: auto;
   background: #f9f9f9;
 }
 
-/* BOTÕES FORMATAÇÃO */
+/* Botões */
 .format-buttons {
   margin-bottom: 10px;
   display: flex;
@@ -103,7 +103,7 @@ button.outline:hover {
   color: #0056b3;
 }
 
-/* LISTA DE MACROS */
+/* Macros */
 .macro-item {
   background: #fff;
   padding: 12px;
@@ -112,11 +112,15 @@ button.outline:hover {
   border-left: 4px solid #007bff;
 }
 
-/* SEARCH */
+/* Filtro */
 .search-input {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 8px;
+}
+
+#import-file {
+  display: none;
 }
