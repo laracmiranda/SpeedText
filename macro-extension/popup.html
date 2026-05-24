@@ -1,69 +1,182 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de Macros</title>
-  <link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SpeedText</title>
+  <link rel="stylesheet" href="popup.css"/>
 </head>
 
 <body>
-  <div class="card">
 
+  <div class="app">
+    <header class="header">
+      <div class="logo-box">
+        ⚡
+      </div>
+
+      <div>
+        <h1>SpeedText</h1>
+        <p>Atalhos de texto inteligentes</p>
+      </div>
+    </header>
+
+    <!-- Abas -->
     <div class="tabs">
-      <button id="tab-cadastrar" class="tab-button active">Cadastrar</button>
-      <button id="tab-visualizar" class="tab-button">Visualizar</button>
+      <button id="tab-cadastrar" class="tab-button active">
+        + Criar
+      </button>
+
+      <button id="tab-visualizar" class="tab-button">
+        ☰ Minhas macros
+        <span id="macro-count">0</span>
+      </button>
     </div>
 
+    <!-- Aba de criação -->
     <div id="cadastrar" class="tab-content active">
 
-      <!-- FORMULÁRIO -->
       <div id="form-section">
-        <input id="shortcut" placeholder="Atalho (ex: /endereco)" />
-        <input id="name" placeholder="Nome (ex: Endereço Completo)" />
 
-        <div id="rich-editor" class="rich-editor" contenteditable="true"></div>
-
-        <div class="format-buttons">
-          <button id="bold-btn">Negrito</button>
-          <button id="italic-btn">Itálico</button>
-          <button id="list-btn">Lista</button>
+        <div class="field">
+          <label>ATALHO</label>
+          <div class="shortcut-wrapper">
+            <span>\</span>
+            <input id="shortcut" placeholder="atalho" autocomplete="off"/>
+          </div>
         </div>
 
-        <button id="add-macro-btn">Adicionar Macro</button>
+        <div class="field">
+          <label>NOME</label>
+          <input id="name" placeholder="Ex: Assinatura de e-mail"/>
+        </div>
+
+        <div class="field">
+          <label>CONTEÚDO</label>
+          <div class="editor-wrapper">
+
+            <div class="toolbar">
+              <button id="bold-btn" class="toolbar-btn"></button>
+              <button id="italic-btn" class="toolbar-btn"></button>
+              <div class="divider"></div>
+              <button id="list-btn" class="toolbar-btn"></button>
+            </div>
+
+            <div
+              id="rich-editor"
+              class="rich-editor"
+              contenteditable="true"
+              data-placeholder="O conteúdo que será inserido no lugar do atalho..."
+            ></div>
+
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="add-macro-btn" class="primary-btn">
+            + Adicionar macro
+          </button>
+        </div>
+
       </div>
 
-      <!-- EDIÇÃO -->
-      <div id="edit-section" style="display: none;">
-        <input id="edit-shortcut" placeholder="Atalho" />
-        <input id="edit-name" placeholder="Nome" />
+      <!-- Aba de Edição -->
+      <div id="edit-section" style="display:none">
 
-        <div id="edit-rich-editor" class="rich-editor" contenteditable="true"></div>
-
-        <div class="format-buttons">
-          <button id="edit-bold-btn">Negrito</button>
-          <button id="edit-italic-btn">Itálico</button>
-          <button id="edit-list-btn">Lista</button>
+        <div class="field">
+          <label>ATALHO</label>
+          <div class="shortcut-wrapper">
+            <span>\</span>
+            <input id="edit-shortcut" placeholder="atalho"/>
+        </div>
         </div>
 
-        <div>
-          <button id="update-macro-btn">Salvar</button>
-          <button id="cancel-edit-btn" class="outline">Cancelar</button>
+        <div class="field">
+          <label>NOME</label>
+          <input id="edit-name"/>
         </div>
+
+        <div class="field">
+          <label>CONTEÚDO</label>
+
+          <div class="editor-wrapper">
+
+            <div class="toolbar">
+              <button id="edit-bold-btn" class="toolbar-btn"></button>
+              <button id="edit-italic-btn" class="toolbar-btn"></button>
+              <div class="divider"></div>
+              <button id="edit-list-btn" class="toolbar-btn"></button>
+            </div>
+
+            <div
+              id="edit-rich-editor"
+              class="rich-editor"
+              contenteditable="true"
+            ></div>
+
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="update-macro-btn" class="primary-btn">
+            Salvar
+          </button>
+
+          <button id="cancel-edit-btn" class="secondary-btn">
+            Cancelar
+          </button>
+        </div>
+
       </div>
 
     </div>
 
+    <!-- Aba de Visualização de Macros -->
     <div id="visualizar" class="tab-content">
-      <input id="search-input" class="search-input" placeholder="Buscar macros..." />
+
+      <div class="search-wrapper">
+        <input
+          id="search-input"
+          class="search-input"
+          placeholder="Buscar por nome ou atalho..."
+        />
+      </div>
+
       <div id="macros-list"></div>
 
-      <div style="margin-top: 10px; display: flex; gap: 8px;">
-        <button id="export-btn">Exportar</button>
-        <button id="import-btn">Importar</button>
-        <input type="file" id="import-file" accept="application/json" style="display:none" />
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">👻</div>
+
+        <h3>Nenhuma macro ainda</h3>
+
+        <p>Crie sua primeira na aba “Criar”.</p>
       </div>
+
+      <div class="bottom-actions">
+
+        <button id="export-btn" class="secondary-btn">
+          ⬇ Exportar
+        </button>
+
+        <button id="import-btn" class="secondary-btn">
+          ⬆ Importar
+        </button>
+
+        <input
+          type="file"
+          id="import-file"
+          accept="application/json"
+          hidden
+        />
+
+      </div>
+
     </div>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+      Desenvolvido por <strong>Lara Corsini</strong>
+    </footer>
 
   </div>
 
