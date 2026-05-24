@@ -301,6 +301,15 @@ input::placeholder{
   color:var(--text);
 }
 
+.editor-wrapper{
+  flex-shrink:0;
+}
+
+#edit-section .rich-editor,
+#form-section .rich-editor{
+  height:120px;
+}
+
 .rich-editor{
   height:90px;
   min-height:90px;
@@ -320,13 +329,21 @@ input::placeholder{
   color:#8f82ab;
 }
 
-.editor-wrapper{
-  flex-shrink:0;
+.rich-editor ul{
+  padding-left:20px;
+  margin:8px 0;
 }
 
-#edit-section .rich-editor,
-#form-section .rich-editor{
-  height:120px;
+.rich-editor li{
+  margin-bottom:4px;
+}
+
+.rich-editor *{
+  max-width:100%;
+}
+
+.rich-editor p{
+  margin:0 0 8px;
 }
 
 /* Botões */

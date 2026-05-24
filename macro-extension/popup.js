@@ -57,15 +57,19 @@ function saveMacros() {
 
 // Adicionar nova macro
 function addMacro() {
-  const shortcut = '\\' + document.getElementById('shortcut')
-  .value
-  .trim()
-  .replace(/^\\+/, '');
+
+  const rawShortcut = document.getElementById('shortcut')
+    .value
+    .trim()
+    .replace(/^\\+/, '');
+
+  const shortcut = '\\' + rawShortcut;
 
   const name = document.getElementById('name').value.trim();
+
   const text = document.getElementById('rich-editor').innerHTML.trim();
 
-  if (!shortcut || !name || !text) {
+  if (!rawShortcut || !name || !text) {
     alert('Preencha todos os campos!');
     return;
   }
@@ -83,6 +87,7 @@ function addMacro() {
   };
 
   macros.push(newMacro);
+
   saveMacros();
 
   document.getElementById('shortcut').value = '';
@@ -107,23 +112,32 @@ function startEdit(id) {
   document.getElementById('edit-rich-editor').innerHTML = macro.text;
 }
 
+//Atualizar Macro
 function updateMacro() {
+
   if (!editingId) return;
 
-  const shortcut = '\\' + document.getElementById('edit-shortcut')
-  .value
-  .trim()
-  .replace(/^\\+/, '');
+  const rawShortcut = document.getElementById('edit-shortcut')
+    .value
+    .trim()
+    .replace(/^\\+/, '');
+
+  const shortcut = '\\' + rawShortcut;
 
   const name = document.getElementById('edit-name').value.trim();
+
   const text = document.getElementById('edit-rich-editor').innerHTML.trim();
 
-  if (!shortcut || !name || !text) {
+  if (!rawShortcut || !name || !text) {
     alert('Preencha todos os campos!');
     return;
   }
 
-  if (macros.some(m => m.id !== editingId && m.shortcut === shortcut)) {
+  if (
+    macros.some(
+      m => m.id !== editingId && m.shortcut === shortcut
+    )
+  ) {
     alert('Este atalho já existe em outra macro!');
     return;
   }
@@ -439,14 +453,6 @@ function resolveDuplicates(duplicates) {
   alert('Importação concluída com resolução de conflitos.');
 }
 
-document.querySelectorAll('.rich-editor').forEach(editor => {
-  editor.addEventListener('input', () => {
-    if (editor.innerHTML === '<br>') {
-      editor.innerHTML = '';
-    }
-  });
-});
-
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   loadMacros();
@@ -500,18 +506,61 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Formatação
-  document.getElementById('bold-btn').addEventListener('click', () => {
-    document.getElementById('rich-editor')?.focus();
-    document.execCommand('bold');
+  function setupEditorToolbar({
+    editorId,
+    boldBtnId,
+    italicBtnId,
+    listBtnId
+  }) {
+
+    const editor = document.getElementById(editorId);
+
+    const boldBtn = document.getElementById(boldBtnId);
+    const italicBtn = document.getElementById(italicBtnId);
+    const listBtn = document.getElementById(listBtnId);
+
+    // Bold
+    boldBtn?.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand('bold');
+    });
+
+    // Italic
+    italicBtn?.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand('italic');
+    });
+
+    // Lista
+    listBtn?.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand('insertUnorderedList');
+    });
+
+    // Limpeza de <br>
+    editor?.addEventListener('input', () => {
+
+      if (
+        editor.innerHTML === '<br>' ||
+        editor.innerHTML === '<div><br></div>'
+      ) {
+        editor.innerHTML = '';
+      }
+    });
+  }
+  // Toolbar Criar
+  setupEditorToolbar({
+    editorId: 'rich-editor',
+    boldBtnId: 'bold-btn',
+    italicBtnId: 'italic-btn',
+    listBtnId: 'list-btn'
   });
 
-  document.getElementById('italic-btn').addEventListener('click', () => {
-    document.getElementById('rich-editor')?.focus();
-    document.execCommand('italic');
-  });
-
-  document.getElementById('list-btn').addEventListener('click', () => {
-    document.getElementById('rich-editor')?.focus();
-    document.execCommand('insertUnorderedList');
+  // Toolbar Editar
+  setupEditorToolbar({
+    editorId: 'edit-rich-editor',
+    boldBtnId: 'edit-bold-btn',
+    italicBtnId: 'edit-italic-btn',
+    listBtnId: 'edit-list-btn'
   });
 });
