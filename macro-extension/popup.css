@@ -10,12 +10,12 @@
   --muted: #b4a8cc;
 
   --primary: #826cff;
-  --primary-2: #2962ff;
+  --primary-2: #79beff;
 
   --gradient:
     linear-gradient(
       135deg,
-      #4d6eff,
+      #2a4bdd,
       #a47efd
     );
 
@@ -72,16 +72,10 @@ body{
     );
 }
 
-.logo-box{
-  width:38px;
-  height:38px;
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:var(--gradient);
-  box-shadow:var(--glow);
-  font-size:18px;
+.logo-image{
+  width:100%;
+  height:100%;
+  object-fit:contain;
 }
 
 .header h1{
