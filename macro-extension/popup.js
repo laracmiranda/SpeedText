@@ -3,7 +3,7 @@ let editingId = null;
 
 // Carregar macros do armazenamento
 function loadMacros() {
-  chrome.storage.local.get('macros', (result) => {
+  chrome.storage.sync.get('macros', (result) => {
     macros = result.macros || [];
     renderMacros();
   });
@@ -11,7 +11,7 @@ function loadMacros() {
 
 // Salvar macros no armazenamento
 function saveMacros() {
-  chrome.storage.local.set({ macros }, () => {
+  chrome.storage.sync.set({ macros }, () => {
     loadMacros();
   });
 }
@@ -94,6 +94,7 @@ function updateMacro() {
   cancelEdit();
 }
 
+//Cancelar Edição
 function cancelEdit() {
   editingId = null;
 
@@ -187,6 +188,21 @@ function openTab(tabName) {
     });
 }
 
+function replaceMacro(item) {
+  const index = macros.findIndex(m => m.shortcut === item.imported.shortcut);
+
+  const newMacro = {
+    id: Date.now().toString() + Math.random(),
+    ...item.imported
+  };
+
+  if (index !== -1) {
+    macros[index] = newMacro;
+  } else {
+    macros.push(newMacro);
+  }
+}
+
 // função para Exportar Macros
 function exportMacros() {
   if (!macros.length) {
@@ -220,26 +236,71 @@ function importMacros(file) {
         return;
       }
 
-      const valid = imported.filter(m =>
-        m.shortcut && m.name && m.text
-      );
+      const valid = imported.filter(m => m.shortcut && m.name && m.text);
 
       if (!valid.length) {
         alert('Nenhuma macro válida encontrada.');
         return;
       }
 
-      const normalized = valid.map(m => ({
-        id: m.id || Date.now().toString() + Math.random(),
-        shortcut: m.shortcut,
-        name: m.name,
-        text: m.text
-      }));
+      const mode = confirm(
+        'OK = MESCLAR (manter existentes)\nCancelar = SUBSTITUIR TUDO'
+      );
 
-      macros = [...macros, ...normalized];
-      saveMacros();
+      // =========================
+      // 💥 SUBSTITUIR TUDO
+      // =========================
+      if (!mode) {
+        const confirmReplace = confirm(
+          'Isso vai APAGAR todas as macros atuais. Continuar?'
+        );
 
-      alert('Importação concluída!');
+        if (!confirmReplace) return;
+
+        macros = valid.map(m => ({
+          id: Date.now().toString() + Math.random(),
+          shortcut: m.shortcut,
+          name: m.name,
+          text: m.text
+        }));
+
+        saveMacros();
+        alert('Macros substituídas com sucesso!');
+        return;
+      }
+
+      // =========================
+      // 🔁 MESCLAR COM DETECÇÃO
+      // =========================
+
+      let duplicates = [];
+
+      valid.forEach(importedMacro => {
+        const existing = macros.find(m => m.shortcut === importedMacro.shortcut);
+
+        if (existing) {
+          duplicates.push({
+            imported: importedMacro,
+            existing
+          });
+        } else {
+          macros.push({
+            id: Date.now().toString() + Math.random(),
+            ...importedMacro
+          });
+        }
+      });
+
+      // Se não houver conflitos
+      if (!duplicates.length) {
+        saveMacros();
+        alert('Importação concluída sem conflitos!');
+        return;
+      }
+
+      // Resolver duplicados
+      resolveDuplicates(duplicates);
+
     } catch (err) {
       alert('Erro ao importar arquivo.');
     }
@@ -247,6 +308,49 @@ function importMacros(file) {
 
   reader.readAsText(file);
 }
+
+function resolveDuplicates(duplicates) {
+  let skipAll = false;
+  let overwriteAll = false;
+
+  duplicates.forEach((item, index) => {
+    if (skipAll) return;
+
+    if (overwriteAll) {
+      replaceMacro(item);
+      return;
+    }
+
+    const action = prompt(
+      `Conflito detectado:\n\nShortcut: ${item.imported.shortcut}\n\nDigite:\n1 = Substituir\n2 = Pular\n3 = Substituir TODOS\n4 = Pular TODOS`
+    );
+
+    switch (action) {
+      case '1':
+        replaceMacro(item);
+        break;
+
+      case '2':
+        break;
+
+      case '3':
+        overwriteAll = true;
+        replaceMacro(item);
+        break;
+
+      case '4':
+        skipAll = true;
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  saveMacros();
+  alert('Importação concluída com resolução de conflitos.');
+}
+
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {

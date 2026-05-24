@@ -25,7 +25,7 @@ const EDITABLE_SELECTORS = `
 
 //Cache
 async function loadMacrosCache() {
-  const result = await chrome.storage.local.get('macros');
+  const result = await chrome.storage.sync.get('macros');
   cachedMacros = result.macros || [];
 }
 
