@@ -10,7 +10,7 @@ let cachedMacros = [];                  // cache local das macros
 
 const htmlParser = document.createElement('div'); // reutilizado para evitar recriação
 
-//Seletores
+// Seletores
 // elementos editáveis suportados pela extensão
 const EDITABLE_SELECTORS = `
   input[type="text"],
@@ -23,6 +23,46 @@ const EDITABLE_SELECTORS = `
   [role="textbox"]
 `;
 
+// Helpers
+
+// Verifica se o navegador está em dark mode
+function isDarkMode() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+// Temas para light e dark mode
+function getThemeColors() {
+  const dark = isDarkMode();
+
+  return dark
+    ? {
+        background: '#1e1e1e',
+        border: '#343434',
+        text: '#f5f5f5',
+        secondary: '#a1a1aa',
+        hover: '#2b2b2b',
+        selected: '#312f42',
+        primary: '#6063fa',
+        shadow: `
+          0 10px 30px rgba(0,0,0,0.45),
+          0 2px 8px rgba(0,0,0,0.30)
+        `
+      }
+    : {
+        background: '#ffffff',
+        border: '#d7d7d7',
+        text: '#111111',
+        secondary: '#666666',
+        hover: '#f5f5f5',
+        selected: '#f3f4ff',
+        primary: '#0400ff',
+        shadow: `
+          0 10px 30px rgba(0,0,0,0.12),
+          0 2px 8px rgba(0,0,0,0.08)
+        `
+      };
+}
+
 //Cache
 async function loadMacrosCache() {
   const result = await chrome.storage.sync.get('macros');
@@ -31,8 +71,39 @@ async function loadMacrosCache() {
 
 // atualiza cache automaticamente quando macros mudam
 chrome.storage.onChanged?.addListener((changes, area) => {
-  if (area === 'local' && changes.macros) {
+
+  if (area === 'sync' && changes.macros) {
     cachedMacros = changes.macros.newValue || [];
+
+    // atualiza sugestões abertas em tempo real
+    if (currentInput) {
+      const value = getElementValue(currentInput);
+      const lastIndex = value.lastIndexOf('\\');
+
+      if (lastIndex !== -1) {
+        const prefix = value
+          .substring(lastIndex)
+          .split(/\s+/)[0];
+
+        currentSuggestions = cachedMacros
+          .filter(m =>
+            m.shortcut?.toLowerCase()
+              .startsWith(prefix.toLowerCase())
+          )
+          .slice(0, 10);
+
+        if (currentSuggestions.length) {
+          selectedIndex = 0;
+          showSuggestions(
+            currentSuggestions,
+            currentInput,
+            prefix
+          );
+        } else {
+          hideSuggestions();
+        }
+      }
+    }
   }
 });
 
@@ -255,86 +326,179 @@ setInterval(() => {
   }
 }, 500);
 
-//Mostra as sugestões de macros no input
+//Mostra as sugestões de macros no input area da página web
 function showSuggestions(list, inputEl, prefix) {
   hideSuggestions(false);
-
   const rect = inputEl.getBoundingClientRect();
-
+  const MAX_HEIGHT = 220;
+  const SPACING = 6;
+  const theme = getThemeColors();
   activeSuggestions = document.createElement('div');
   activeSuggestions.id = 'macro-suggestions-dropdown';
 
   activeSuggestions.style.cssText = `
     position: fixed;
     left: ${rect.left}px;
-    top: ${rect.bottom + window.scrollY + 5}px;
     z-index: 2147483647;
-    background: white;
-    border: 1px solid #007bff;
-    border-radius: 6px;
-    max-height: 200px;
+    background: ${theme.background};
+    border: 1px solid ${theme.border};
+    border-radius: 12px;
+    max-height: ${MAX_HEIGHT}px;
     overflow-y: auto;
-    min-width: ${Math.max(rect.width, 200)}px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    font-family: Arial;
-    font-size: 14px;
+    min-width: ${Math.max(rect.width, 260)}px;
+    box-shadow: ${theme.shadow};
+    font-family: Inter, Arial, sans-serif;
+    font-size: 13px;
+    color: ${theme.text};
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity .12s ease,
+      transform .12s ease;
   `;
 
-  // renderiza lista de sugestões
+  // Renderiza lista
   activeSuggestions.innerHTML = list.map((m, i) => {
-    const preview = (m.text || '').slice(0, 50);
+
+    const preview = htmlToPlainText(m.text || '')
+      .replace(/\n/g, ' ')
+      .slice(0, 70);
 
     return `
-      <div class="item" data-i="${i}"
-        style="padding:8px;cursor:pointer;border-bottom:1px solid #eee">
-        <b>${m.shortcut}</b><br>
-        <small>${m.name} - ${preview}</small>
+      <div
+        class="item"
+        data-i="${i}"
+        style="
+          padding: 10px 12px;
+          cursor: pointer;
+          border-bottom: 1px solid ${theme.border};
+          transition:
+            background .12s ease,
+            color .12s ease;
+        "
+      >
+
+        <div
+          style="
+            font-weight: 600;
+            color: ${theme.primary};
+            margin-bottom: 2px;
+          "
+        >
+          ${m.shortcut}
+        </div>
+
+        <div
+          style="
+            font-size: 12px;
+            color: ${theme.secondary};
+            line-height: 1.4;
+          "
+        >
+          ${m.name} — ${preview}
+        </div>
+
       </div>
     `;
   }).join('');
 
-  // clique e hover nas sugestões
-  activeSuggestions.querySelectorAll('.item').forEach((el, i) => {
-    el.onclick = () => {
-      applySuggestion(list[i], inputEl, prefix);
-      hideSuggestions();
-    };
+  document.body.appendChild(activeSuggestions);
 
-    el.onmouseenter = () => {
-      selectedIndex = i;
-      updateSelection();
-    };
+  // altura REAL do dropdown
+  const dropdownHeight = activeSuggestions.offsetHeight;
+
+  // espaço disponível
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+
+  // decide direção
+  const shouldOpenUp =
+    spaceBelow < dropdownHeight &&
+    spaceAbove > spaceBelow;
+
+  // posição FINAL
+  const topPosition = shouldOpenUp
+    ? rect.top - dropdownHeight - SPACING
+    : rect.bottom + SPACING;
+
+  activeSuggestions.style.top = `${topPosition}px`;
+
+  // animação suave
+  activeSuggestions.style.transform = shouldOpenUp
+    ? 'translateY(4px)'
+    : 'translateY(-4px)';
+
+  requestAnimationFrame(() => {
+    activeSuggestions.style.opacity = '1';
+    activeSuggestions.style.pointerEvents = 'auto';
+    activeSuggestions.style.transform = 'translateY(0)';
   });
 
-  // scroll do mouse no dropdown
-  activeSuggestions.addEventListener('wheel', (e) => {
-    e.preventDefault();
+  // Eventos
+  activeSuggestions.querySelectorAll('.item')
+    .forEach((el, i) => {
 
-    selectedIndex += e.deltaY > 0 ? 1 : -1;
-    selectedIndex = Math.max(0, Math.min(selectedIndex, currentSuggestions.length - 1));
+      el.onclick = () => {
+        applySuggestion(
+          list[i],
+          inputEl,
+          prefix
+        );
+        hideSuggestions();
+      };
 
-    updateSelection();
-  }, { passive: false });
+      el.onmouseenter = () => {
+        selectedIndex = i;
+        updateSelection();
+      };
+    });
 
-  document.body.appendChild(activeSuggestions);
   updateSelection();
 }
 
 // Atualizar a seleção visual das macros
 function updateSelection() {
-  if (!activeSuggestions) return;
 
-  const items = activeSuggestions.querySelectorAll('.item');
+  if (!activeSuggestions) return;
+  const theme = getThemeColors();
+
+  const items =
+    activeSuggestions.querySelectorAll('.item');
 
   items.forEach((el, i) => {
     const active = i === selectedIndex;
+    el.style.background = active
+      ? theme.selected
+      : theme.background;
 
-    el.style.background = active ? '#e3f2fd' : 'white';
-    el.style.color = active ? '#007bff' : '#000';
+    el.style.color = theme.text;
 
-    if (active) el.scrollIntoView({ block: 'nearest' });
+    if (active) {
+      el.scrollIntoView({
+        block: 'nearest'
+      });
+    }
   });
 }
+
+// Atualizar tema em tempo real
+window.matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', () => {
+
+    if (
+      activeSuggestions &&
+      currentInput &&
+      currentSuggestions.length
+    ) {
+
+      showSuggestions(
+        currentSuggestions,
+        currentInput,
+        inputState.get(currentInput)?.lastPrefix || ''
+      );
+    }
+  });
 
 // Aplicar macro
 function applySuggestion(macro, input, prefix) {
