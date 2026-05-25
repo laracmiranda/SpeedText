@@ -1,42 +1,146 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+  <!-- Meta -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SpeedText — Extensão para Chrome</title>
-  <link rel="icon" type="image/svg+xml" href="assets/logo.svg"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin  >
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <!-- SEO -->
+  <title>SpeedText — Extensão de Macros e Autocomplete para Chrome</title>
+
+  <meta
+    name="description"
+    content="Crie atalhos de texto inteligentes para preencher mensagens rapidamente em qualquer site. Expanda macros, autocomplete, importação/exportação e suporte para inputs e contenteditable."
+  />
+
+  <meta
+    name="keywords"
+    content="extensão chrome, macros, autocomplete, atalhos de texto, preenchimento automático, produtividade"
+  />
+
+  <meta
+    name="author"
+    content="SpeedText"
+  />
+
+  <!-- Open Graph -->
+  <meta
+    property="og:title"
+    content="SpeedText — Extensão de Macros para Chrome"
+  />
+
+  <meta
+    property="og:description"
+    content="Expanda atalhos em qualquer site com autocomplete inteligente."
+  />
+
+  <meta
+    property="og:type"
+    content="website"
+  />
+
+  <meta
+    property="og:image"
+    content="assets/logo.svg"
+  />
+
+  <!-- Theme -->
+  <meta
+    name="theme-color"
+    content="#121033"
+  />
+
+  <!-- Favicon -->
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="assets/logo.svg"
+  />
+
+  <!-- Fonts -->
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- CSS -->
+  <link
+    rel="stylesheet"
+    href="style.css"
+  />
 </head>
 
 <body>
 
-  <div class="floating-glow"></div>
+  <!-- Glow decorativo -->
+  <div
+    class="floating-glow"
+    aria-hidden="true"
+  ></div>
 
   <main class="container">
 
-    <section class="hero">
+    <!-- HERO -->
+    <section
+      class="hero"
+      aria-labelledby="hero-title"
+    >
 
-      <div class="hero-content">
-        <div class="badge">
+      <!-- Conteúdo -->
+      <article class="hero-content">
+
+        <!-- Badge -->
+        <header class="badge">
+
           <img
             src="assets/logo.svg"
-            alt="SpeedText"
+            alt="Logo da extensão SpeedText"
             class="badge-logo"
-          >
-          <span>SpeedText - Extensão para Chrome</span>
-        </div>
+            width="32"
+            height="32"
+          />
 
-        <h1>
-          Suas frases favoritas <span class="gradient"> a um atalho de distância </span>
+          <span>SpeedText • Extensão para Chrome</span>
+
+        </header>
+
+        <!-- Headline -->
+        <h1 id="hero-title">
+          Suas frases favoritas
+          <span class="gradient">
+            a um atalho de distância
+          </span>
         </h1>
 
-        <p class="description"> SpeedText expande atalhos como <code>\email</code> em qualquer campo de texto. Crie, organize, importe e exporte suas macros direto do popup.
+        <!-- Descrição -->
+        <p class="description">
+          O SpeedText expande atalhos como
+          <code>\email</code>
+          em qualquer campo de texto.
+          Crie, organize, importe e exporte macros
+          diretamente do popup da extensão.
         </p>
 
-        <div class="actions">
+        <!-- CTA -->
+        <nav
+          class="actions"
+          aria-label="Ações principais"
+        >
 
           <a
             href="SpeedText.zip"
@@ -47,89 +151,121 @@
           </a>
 
           <a
-            href="#instalar"
+            href="#instalacao"
             class="btn btn-secondary"
           >
             🌐 Como instalar
           </a>
 
-        </div>
+        </nav>
 
-        <!-- PASSOS -->
-        <div
+        <!-- Instalação -->
+        <section
           class="steps"
-          id="instalar"
+          id="instalacao"
+          aria-labelledby="steps-title"
         >
 
-          <div class="step">
-            <div class="step-number">1</div>
-            <div>
-              Baixe e descompacte o arquivo .zip.
-            </div>
-          </div>
+          <h2
+            id="steps-title"
+            class="sr-only"
+          >
+            Como instalar a extensão
+          </h2>
 
-          <div class="step">
-            <div class="step-number">2</div>
-            <div>
-              Acesse chrome://extensions no navegador.
-            </div>
-          </div>
+          <ol class="steps-list">
 
-          <div class="step">
-            <div class="step-number">3</div>
-            <div>
-              Ative o “Modo do desenvolvedor”.
-            </div>
-          </div>
+            <li class="step">
+              <span class="step-number">1</span>
 
-          <div class="step">
-            <div class="step-number">4</div>
-            <div>
-              Clique em “Carregar sem compactação”
-              e selecione a pasta da extensão.
-            </div>
-          </div>
+              <p>
+                Baixe e descompacte o arquivo
+                <strong>.zip</strong>.
+              </p>
+            </li>
 
-        </div>
+            <li class="step">
+              <span class="step-number">2</span>
 
-      </div>
+              <p>
+                Acesse
+                <strong>chrome://extensions</strong>
+                no navegador.
+              </p>
+            </li>
 
-      <!-- Vídeo de pré-visualização -->
-      <div class="preview-wrapper">
+            <li class="step">
+              <span class="step-number">3</span>
+
+              <p>
+                Ative o
+                <strong>Modo do desenvolvedor</strong>.
+              </p>
+            </li>
+
+            <li class="step">
+              <span class="step-number">4</span>
+
+              <p>
+                Clique em
+                <strong>Carregar sem compactação</strong>
+                e selecione a pasta da extensão.
+              </p>
+            </li>
+
+          </ol>
+
+        </section>
+
+      </article>
+
+      <!-- Preview -->
+      <aside
+        class="preview-wrapper"
+        aria-label="Pré-visualização da extensão"
+      >
 
         <div class="preview-label">
           🔹 Pré-visualização da extensão
         </div>
 
-        <div class="preview-card">
+        <figure class="preview-card">
 
-          <div class="preview-overlay">
+          <!-- Overlay -->
+          <figcaption class="preview-overlay">
+
             <img
               src="assets/logo.svg"
-              alt="SpeedText"
-            >
-            <span>SpeedText</span>
-          </div>
+              alt=""
+              aria-hidden="true"
+            />
 
+            <span>SpeedText</span>
+
+          </figcaption>
+
+          <!-- Vídeo -->
           <video
             autoplay
             muted
             loop
             playsinline
+            preload="metadata"
+            aria-label="Vídeo demonstrando o funcionamento da extensão SpeedText"
           >
+
             <source
               src="preview.mp4"
               type="video/mp4"
-            >
+            />
+
+            Seu navegador não suporta vídeos HTML5.
+
           </video>
-
-        </div>
-
-      </div>
-
+        </figure>
+      </aside>
     </section>
-
   </main>
-
 </body>
+
 </html>
