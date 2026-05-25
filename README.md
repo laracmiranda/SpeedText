@@ -1,16 +1,16 @@
-# <img width="52" height="52" alt="SpeedText Logo" src="https://raw.githubusercontent.com/laracmiranda/SpeedText/main/assets/logo.svg" /> SpeedText
+# <img width="52" height="52" alt="SpeedText Logo" src="../Macro_Utility/site/assets/logo.svg" /> SpeedText
 
 <p align="left">
 
-![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-826cff.svg)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-826cff.svg)
-![HTML5](https://img.shields.io/badge/HTML5-79beff.svg)
-![CSS3](https://img.shields.io/badge/CSS3-79beff.svg)
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-2a4bdd.svg)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-2a4bdd.svg)
+![HTML5](https://img.shields.io/badge/HTML5-2a4bdd.svg)
+![CSS3](https://img.shields.io/badge/CSS3-2a4bdd.svg)
 
 Extensão para Chrome que permite criar, gerenciar e expandir macros de texto em qualquer site com autocomplete inteligente.
 Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos instantaneamente.
 
-👉 Baixe a extensão: `SpeedText.zip`
+👉 Baixe a extensão: [SpeedText](https://github.com/laracmiranda/SpeedText/blob/main/site/SpeedText.zip)
 
 ---
 
@@ -24,12 +24,7 @@ Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos in
 
 * Autocomplete inteligente em tempo real
 * Expansão de macros em qualquer campo de texto
-* Compatível com:
-
-  * Inputs
-  * Textareas
-  * Contenteditable
-  * Rich editors
+* Compatível com: Inputs, Textareas, Contenteditable, Rich editors
 * Navegação pelo teclado (`↑ ↓ Enter Tab Esc`)
 * Sistema moderno de sugestões flutuantes
 * Detecção automática de Dark / Light Mode
@@ -195,7 +190,8 @@ git push origin feature/minha-feature
 
 ## 📃 Licença
 
-Este projeto está licenciado sob a licença **GLP 2.0**
+Este projeto está licenciado sob a licença **GNU General Public License v2.0 (GPL-2.0).**
+
 
 ---
 
