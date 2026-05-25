@@ -1,3 +1,11 @@
+/*
+ * SpeedText
+ * Copyright (C) 2026 Lara Miranda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License v2.0.
+ */
+
 const Icons = {
   bold: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

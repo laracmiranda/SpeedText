@@ -1,22 +1,42 @@
 :root {
+  /* Colors */
   --bg: #0b0b24;
   --card: #121033;
-  --border: rgba(255,255,255,.08);
   --text: #ffffff;
   --muted: #b4a8cc;
   --primary: #826cff;
   --primary-2: #79beff;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Effects */
   --gradient:
     linear-gradient(
       135deg,
       #2a4bdd 0%,
       #a47efd 100%
     );
+
   --shadow:
-    0 10px 40px rgba(168,85,247,.18);
+    0 10px 40px rgba(168, 85, 247, 0.18);
+
+  --glass:
+    rgba(255, 255, 255, 0.04);
+
+  --glass-hover:
+    rgba(255, 255, 255, 0.08);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --transition: 0.25s ease;
 }
 
-* {
+/* -- Reset -- */
+
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -27,53 +47,64 @@ html {
 }
 
 body {
+  min-height: 100vh;
+  overflow-x: hidden;
   font-family: 'Inter', sans-serif;
+  color: var(--text);
   background:
     radial-gradient(
       circle at top,
       #2b1248 0%,
       var(--bg) 60%
     );
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
-/* Logo principal */
+/* -- Global -- */
 
-.hero-logo {
-  margin-bottom: 24px;
+img,
+video {
+  display: block;
+  max-width: 100%;
 }
 
-.hero-logo img {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  filter:
-    drop-shadow(0 0 18px rgba(85, 88, 247, 0.45));
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-/* Logo do badge */
-
-.badge-logo {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
+code {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--primary-2);
+  background: rgba(168, 85, 247, 0.15);
 }
 
-/* Glow Background */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* -- Brilho -- */
 
 .floating-glow {
   position: fixed;
-  width: 420px;
-  height: 420px;
-  background: rgba(168,85,247,.18);
-  filter: blur(120px);
-  border-radius: 50%;
   top: -120px;
   right: -100px;
-  pointer-events: none;
   z-index: 0;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(168, 85, 247, 0.18);
+  filter: blur(120px);
 }
 
 /* Layout */
@@ -82,41 +113,51 @@ body {
   position: relative;
   z-index: 2;
   max-width: 1280px;
-  margin: auto;
+  margin: 0 auto;
   padding: 80px 40px;
 }
 
 .hero {
   display: grid;
   grid-template-columns: 1fr 430px;
-  gap: 80px;
   align-items: center;
+  gap: 80px;
 }
 
-/* Badge */
+.hero-content {
+  width: 100%;
+}
+
+/* -- Badge -- */
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 28px;
   padding: 10px 16px;
-  border-radius: 999px;
-  background: rgba(168,85,247,.12);
   border: 1px solid rgba(85, 101, 247, 0.3);
-  color: #b4d7fe;
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 28px;
+  color: #b4d7fe;
+  background: rgba(168, 85, 247, 0.12);
 }
 
-/* Texto */
+.badge-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* -- Tipografia -- */
 
 h1 {
-  font-size: 72px;
-  line-height: 1.05;
-  font-weight: 800;
-  letter-spacing: -2px;
   max-width: 700px;
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -2px;
 }
 
 .gradient {
@@ -126,98 +167,98 @@ h1 {
 }
 
 .description {
+  max-width: 650px;
   margin-top: 28px;
-  color: var(--muted);
   font-size: 20px;
   line-height: 1.7;
-  max-width: 650px;
+  color: var(--muted);
 }
 
-code {
-  background: rgba(168,85,247,.15);
-  color: #79beff;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-/* Botões */
+/* -- Botões -- */
 
 .actions {
-  margin-top: 40px;
   display: flex;
-  gap: 18px;
   flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 40px;
 }
 
 .btn {
-  height: 58px;
-  padding: 0 26px;
-  border-radius: 18px;
-  border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  text-decoration: none;
+  height: 58px;
+  padding: 0 26px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
   font-size: 15px;
   font-weight: 700;
-  transition: .25s;
+  transition: var(--transition);
 }
 
 .btn-primary {
-  background: var(--gradient);
   color: white;
+  background: var(--gradient);
   box-shadow: var(--shadow);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
   filter: brightness(1.1);
+  transform: translateY(-2px);
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,.04);
-  border-color: var(--border);
   color: white;
+  border-color: var(--border);
+  background: var(--glass);
 }
 
 .btn-secondary:hover {
-  background: rgba(255,255,255,.08);
+  background: var(--glass-hover);
   border-color: rgba(85, 109, 247, 0.4);
 }
 
-/* Tutorial */
+/* -- Passo a Passo Instalação -- */
 
 .steps {
   margin-top: 52px;
+}
+
+.steps-list {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  list-style: none;
 }
 
 .step {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  color: var(--muted);
   font-size: 16px;
+  color: var(--muted);
 }
 
 .step-number {
-  min-width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgba(168,85,247,.14);
-  color: #79b0f9;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  min-width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
+  font-weight: 700;
+  color: #79b0f9;
+  background: rgba(168, 85, 247, 0.14);
 }
 
-/* Preview */
+.step p {
+  line-height: 1.6;
+}
+
+/* -- Pré-visualização -- */
+
 .preview-wrapper {
   display: flex;
   flex-direction: column;
@@ -226,35 +267,35 @@ code {
 }
 
 .preview-label {
-  font-size: 13px;
-  color: var(--muted);
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .preview-card {
+  position: relative;
   width: 430px;
   height: 760px;
-  border-radius: 28px;
   overflow: hidden;
-  background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
   box-shadow:
-    0 30px 80px rgba(0,0,0,.45),
-    0 0 0 1px rgba(255,255,255,.02);
-  position: relative;
+    0 30px 80px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .preview-card video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
-.preview-overlay {
+/* -- Pré-visualização da extensão -- */
 
+.preview-overlay {
   position: absolute;
   top: 18px;
   left: 18px;
@@ -263,10 +304,10 @@ code {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 16px;
-  background: rgba(12,12,18,.65);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(12, 12, 18, 0.65);
 }
 
 .preview-overlay img {
@@ -282,6 +323,7 @@ code {
 }
 
 /* Responsividade */
+
 @media (max-width: 1100px) {
 
   .hero {
@@ -298,6 +340,7 @@ code {
 }
 
 @media (max-width: 640px) {
+
   .container {
     padding: 40px 24px;
   }
@@ -310,16 +353,16 @@ code {
     font-size: 17px;
   }
 
-  .preview-card {
-    width: 100%;
-    height: 620px;
-  }
-
   .actions {
     flex-direction: column;
   }
 
-  .btn {
+  .btn,
+  .preview-card {
     width: 100%;
+  }
+
+  .preview-card {
+    height: 620px;
   }
 }
