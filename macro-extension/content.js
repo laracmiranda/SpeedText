@@ -1,3 +1,11 @@
+/*
+ * SpeedText
+ * Copyright (C) 2026 Lara Miranda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License v2.0.
+ */
+
 const monitoredElements = new WeakSet(); // evita duplicar listeners no mesmo elemento
 
 let activeSuggestions = null;            // dropdown atual de sugestões
