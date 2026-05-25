@@ -10,8 +10,7 @@ let cachedMacros = [];                  // cache local das macros
 
 const htmlParser = document.createElement('div'); // reutilizado para evitar recriação
 
-// Seletores
-// elementos editáveis suportados pela extensão
+// Tipos de elementos editáveis suportados pela extensão
 const EDITABLE_SELECTORS = `
   input[type="text"],
   input[type="search"],
@@ -23,16 +22,16 @@ const EDITABLE_SELECTORS = `
   [role="textbox"]
 `;
 
-// Helpers
+// -- Tema --
 
 // Verifica se o navegador está em dark mode
-function isDarkMode() {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
+const DARK_MODE_QUERY = window.matchMedia(
+  '(prefers-color-scheme: dark)'
+);
 
 // Temas para light e dark mode
 function getThemeColors() {
-  const dark = isDarkMode();
+  const dark = DARK_MODE_QUERY.matches;
 
   return dark
     ? {
@@ -63,51 +62,198 @@ function getThemeColors() {
       };
 }
 
-//Cache
+// -- Cache --
 async function loadMacrosCache() {
-  const result = await chrome.storage.sync.get('macros');
-  cachedMacros = result.macros || [];
+  const { macros = [] } =
+    await chrome.storage.sync.get('macros');
+
+  cachedMacros = macros;
 }
 
-// atualiza cache automaticamente quando macros mudam
+// Atualiza macros em tempo real quando são editadas na extensão, e atualiza sugestões abertas
 chrome.storage.onChanged?.addListener((changes, area) => {
 
-  if (area === 'sync' && changes.macros) {
-    cachedMacros = changes.macros.newValue || [];
+  if (area !== 'sync' || !changes.macros) return;
 
-    // atualiza sugestões abertas em tempo real
-    if (currentInput) {
-      const value = getElementValue(currentInput);
-      const lastIndex = value.lastIndexOf('\\');
+  cachedMacros = changes.macros.newValue || [];
 
-      if (lastIndex !== -1) {
-        const prefix = value
-          .substring(lastIndex)
-          .split(/\s+/)[0];
+  if (!currentInput) return;
 
-        currentSuggestions = cachedMacros
-          .filter(m =>
-            m.shortcut?.toLowerCase()
-              .startsWith(prefix.toLowerCase())
-          )
-          .slice(0, 10);
-
-        if (currentSuggestions.length) {
-          selectedIndex = 0;
-          showSuggestions(
-            currentSuggestions,
-            currentInput,
-            prefix
-          );
-        } else {
-          hideSuggestions();
-        }
-      }
-    }
-  }
+  updateSuggestions(currentInput);
 });
 
-//Captura elementos editáveis da página (inputs, textareas, contenteditables)
+// -- Helpers --
+
+// Retorna o valor atual do elemento, seja ele um input, textarea ou contenteditable
+function getElementValue(el) {
+  return (
+    el.value ||
+    el.textContent ||
+    el.innerText ||
+    ''
+  ).trim();
+}
+
+// Evita erros em regex com caracteres especiais
+function escapeRegExp(str) {
+  return str.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&'
+  );
+}
+
+// Converte HTML para texto puro
+function htmlToPlainText(html) {
+  htmlParser.innerHTML = html;
+
+  htmlParser
+    .querySelectorAll('br')
+    .forEach(br => br.replaceWith('\n'));
+
+  htmlParser
+    .querySelectorAll('li')
+    .forEach(li => {
+      li.innerHTML = `• ${li.innerHTML}`;
+    });
+
+  return (
+    htmlParser.innerText ||
+    htmlParser.textContent ||
+    ''
+  )
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// Define se o elemento deve ser tratado como texto puro ou rich text
+function isPlainTextElement(el) {
+  return (
+    el.tagName === 'INPUT' ||
+    el.tagName === 'TEXTAREA' ||
+    !el.isContentEditable
+  );
+}
+
+// -- Inputs --
+
+// Define o valor do elemento, tratando adequadamente inputs simples e contenteditables
+function setElementValue(el, value) {
+  const plain = htmlToPlainText(value);
+
+  // input/textarea
+  if (
+    el.tagName === 'INPUT' ||
+    el.tagName === 'TEXTAREA'
+  ) {
+
+    el.value = plain;
+
+    // move cursor para o final
+    el.setSelectionRange?.(
+      el.value.length,
+      el.value.length
+    );
+
+    // dispara eventos para notificar mudanças
+    el.dispatchEvent(
+      new Event('input', { bubbles: true })
+    );
+
+    el.dispatchEvent(
+      new Event('change', { bubbles: true })
+    );
+
+    return;
+  }
+
+  // contenteditable (rich text)
+  if (el.isContentEditable) {
+
+    el.focus();
+    el.innerHTML = '';
+
+    const temp = document.createElement('div');
+    temp.innerHTML = value;
+
+    while (temp.firstChild) {
+      el.appendChild(temp.firstChild);
+    }
+
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    range.selectNodeContents(el);
+    range.collapse(false);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    el.dispatchEvent(new InputEvent('input', {
+      bubbles: true,
+      inputType: 'insertText',
+      data: plain
+    }));
+
+    return;
+  }
+
+  el.textContent = plain;
+  el.focus();
+}
+
+// Retorna todos os elementos editáveis na página, incluindo iframes
+function getEditableElements(root = document) {
+
+  const elements = [];
+
+  try {
+
+    root.querySelectorAll?.(
+      EDITABLE_SELECTORS
+    ).forEach(el => {
+
+      if (
+        !el.disabled &&
+        el.offsetParent !== null
+      ) {
+        elements.push(el);
+      }
+    });
+
+  } catch (_) {}
+
+  // suporte iframe
+  document.querySelectorAll('iframe')
+    .forEach(iframe => {
+
+      try {
+
+        const doc = iframe.contentDocument;
+
+        if (
+          !doc ||
+          doc.readyState !== 'complete'
+        ) return;
+
+        doc.querySelectorAll(
+          EDITABLE_SELECTORS
+        ).forEach(el => {
+
+          if (
+            !el.disabled &&
+            el.offsetParent !== null
+          ) {
+            elements.push(el);
+          }
+        });
+
+      } catch (_) {}
+    });
+
+  return elements;
+}
+
+// Retorna todos os elementos editáveis na página, incluindo iframes, com tratamento de erros para iframes sem acesso
 function getEditableElements(root = document) {
   const elements = [];
 
@@ -138,203 +284,79 @@ function getEditableElements(root = document) {
   return elements;
 }
 
-//Helpers
-function getElementValue(el) {
-  // retorna texto atual do elemento
-  return (el.value || el.textContent || el.innerText || '').trim();
-}
+// -- Funcionamento --
 
-function escapeRegExp(str) {
-  // evita erro em regex com caracteres especiais
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+// Atualiza sugestões com base no input atual, evitando processamento duplicado
+function updateSuggestions(target) {
+  currentInput = target;
+  const value = getElementValue(target);
 
-//Realiza conversão de html para texto dependendo do input do site
-function htmlToPlainText(html) {
-  htmlParser.innerHTML = html;
+  if (!value) {
+    hideSuggestions();
+    return;
+  }
 
-  // converte <br> em quebra de linha
-  htmlParser.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  const lastIndex = value.lastIndexOf('\\');
 
-  // adiciona bullet em listas
-  htmlParser.querySelectorAll('li').forEach(li => {
-    li.innerHTML = `• ${li.innerHTML}`;
+  if (lastIndex === -1) {
+    hideSuggestions();
+    return;
+  }
+
+  const prefix = value
+    .substring(lastIndex)
+    .split(/\s+/)[0];
+
+  const state = inputState.get(target) || {};
+
+  // evita processamento duplicado
+  if (
+    state.lastPrefix === prefix &&
+    state.lastValue === value
+  ) {
+    return;
+  }
+
+  inputState.set(target, {
+    lastPrefix: prefix,
+    lastValue: value
   });
 
-  let text = htmlParser.innerText || htmlParser.textContent || '';
+  currentSuggestions = cachedMacros
+    .filter(m =>
+      m.shortcut
+        ?.toLowerCase()
+        .startsWith(prefix.toLowerCase())
+    )
+    .slice(0, 10);
 
-  // remove excesso de quebras de linha
-  return text.replace(/\n{3,}/g, '\n\n').trim();
-}
+  if (!currentSuggestions.length) {
+    hideSuggestions();
+    return;
+  }
 
-//Identifica o tipo de input
-function isPlainTextElement(el) {
-  // define se deve tratar como texto puro ou rich text
-  return (
-    el.tagName === 'INPUT' ||
-    el.tagName === 'TEXTAREA' ||
-    !el.isContentEditable
+  selectedIndex = 0;
+
+  showSuggestions(
+    currentSuggestions,
+    target,
+    prefix
   );
 }
 
-//Define valor do elemento
-function setElementValue(el, value) {
-  const plain = htmlToPlainText(value);
-
-  // input/textarea padrão
-  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-    el.value = plain;
-
-    // move cursor para o final
-    if (el.setSelectionRange) {
-      el.setSelectionRange(el.value.length, el.value.length);
-    }
-
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    return;
-  }
-
-  // contenteditable (editores ricos)
-  if (el.isContentEditable) {
-    el.focus();
-    el.innerHTML = '';
-
-    const temp = document.createElement('div');
-    temp.innerHTML = value;
-
-    while (temp.firstChild) {
-      el.appendChild(temp.firstChild);
-    }
-
-    const range = document.createRange();
-    const sel = window.getSelection();
-
-    range.selectNodeContents(el);
-    range.collapse(false);
-
-    sel.removeAllRanges();
-    sel.addRange(range);
-
-    el.dispatchEvent(new InputEvent('input', {
-      bubbles: true,
-      inputType: 'insertText',
-      data: plain
-    }));
-
-    return;
-  }
-
-  // fallback seguro
-  el.textContent = plain;
-  el.focus();
-}
-//Monitoramento do Input
-function monitorInput(el) {
-  if (monitoredElements.has(el)) return;
-  monitoredElements.add(el);
-
-  // captura digitação/alterações
-  const handleInput = (e) => {
-    const target = e.target || e.srcElement;
-    currentInput = target;
-
-    const value = getElementValue(target);
-    if (!value) return hideSuggestions();
-
-    const lastIndex = value.lastIndexOf('\\');
-    if (lastIndex === -1) return hideSuggestions();
-
-    const prefix = value.substring(lastIndex).split(/\s+/)[0];
-
-    const state = inputState.get(target) || {};
-
-    // evita reprocessar mesma entrada
-    if (state.lastPrefix === prefix && state.lastValue === value) return;
-
-    state.lastPrefix = prefix;
-    state.lastValue = value;
-    inputState.set(target, state);
-
-    // filtra macros do cache
-    currentSuggestions = cachedMacros
-      .filter(m =>
-        m.shortcut?.toLowerCase().startsWith(prefix.toLowerCase())
-      )
-      .slice(0, 10);
-
-    if (!currentSuggestions.length) return hideSuggestions();
-
-    selectedIndex = 0;
-    showSuggestions(currentSuggestions, target, prefix);
-  };
-
-  // navegação do teclado no dropdown
-  const handleKeydown = (e) => {
-    if (!activeSuggestions || currentInput !== e.target) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        selectedIndex = Math.min(selectedIndex + 1, currentSuggestions.length - 1);
-        updateSelection();
-        break;
-
-      case 'ArrowUp':
-        e.preventDefault();
-        selectedIndex = Math.max(selectedIndex - 1, 0);
-        updateSelection();
-        break;
-
-      case 'Tab':
-      case 'Enter':
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (selectedIndex >= 0) {
-          applySuggestion(
-            currentSuggestions[selectedIndex],
-            currentInput,
-            inputState.get(currentInput)?.lastPrefix || ''
-          );
-        }
-        break;
-
-      case 'Escape':
-        hideSuggestions();
-        break;
-    }
-  };
-
-  el.addEventListener('input', handleInput);
-  el.addEventListener('keyup', handleInput);
-  el.addEventListener('paste', handleInput);
-  el.addEventListener('keydown', handleKeydown);
-}
-
-//Monitoramento de eventos
-setInterval(() => {
-  const el = document.activeElement;
-
-  if (!el) return;
-
-  const isEditable =
-    el.matches?.(EDITABLE_SELECTORS) || el.isContentEditable;
-
-  if (isEditable && !monitoredElements.has(el)) {
-    monitorInput(el);
-  }
-}, 500);
-
-//Mostra as sugestões de macros no input area da página web
+// Exibe o dropdown de sugestões posicionado próximo ao input
 function showSuggestions(list, inputEl, prefix) {
   hideSuggestions(false);
+
   const rect = inputEl.getBoundingClientRect();
   const MAX_HEIGHT = 220;
   const SPACING = 6;
   const theme = getThemeColors();
+
   activeSuggestions = document.createElement('div');
-  activeSuggestions.id = 'macro-suggestions-dropdown';
+
+  activeSuggestions.id =
+    'macro-suggestions-dropdown';
 
   activeSuggestions.style.cssText = `
     position: fixed;
@@ -358,9 +380,7 @@ function showSuggestions(list, inputEl, prefix) {
       transform .12s ease;
   `;
 
-  // Renderiza lista
   activeSuggestions.innerHTML = list.map((m, i) => {
-
     const preview = htmlToPlainText(m.text || '')
       .replace(/\n/g, ' ')
       .slice(0, 70);
@@ -405,38 +425,39 @@ function showSuggestions(list, inputEl, prefix) {
 
   document.body.appendChild(activeSuggestions);
 
-  // altura REAL do dropdown
-  const dropdownHeight = activeSuggestions.offsetHeight;
+  // calcula direção
+  const dropdownHeight =
+    activeSuggestions.offsetHeight;
 
-  // espaço disponível
-  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceBelow =
+    window.innerHeight - rect.bottom;
+
   const spaceAbove = rect.top;
 
-  // decide direção
   const shouldOpenUp =
     spaceBelow < dropdownHeight &&
     spaceAbove > spaceBelow;
 
-  // posição FINAL
-  const topPosition = shouldOpenUp
-    ? rect.top - dropdownHeight - SPACING
-    : rect.bottom + SPACING;
+  activeSuggestions.style.top = shouldOpenUp
+    ? `${rect.top - dropdownHeight - SPACING}px`
+    : `${rect.bottom + SPACING}px`;
 
-  activeSuggestions.style.top = `${topPosition}px`;
-
-  // animação suave
-  activeSuggestions.style.transform = shouldOpenUp
-    ? 'translateY(4px)'
-    : 'translateY(-4px)';
+  activeSuggestions.style.transform =
+    shouldOpenUp
+      ? 'translateY(4px)'
+      : 'translateY(-4px)';
 
   requestAnimationFrame(() => {
+
     activeSuggestions.style.opacity = '1';
     activeSuggestions.style.pointerEvents = 'auto';
-    activeSuggestions.style.transform = 'translateY(0)';
+    activeSuggestions.style.transform =
+      'translateY(0)';
   });
 
-  // Eventos
-  activeSuggestions.querySelectorAll('.item')
+  // eventos
+  activeSuggestions
+    .querySelectorAll('.item')
     .forEach((el, i) => {
 
       el.onclick = () => {
@@ -445,7 +466,6 @@ function showSuggestions(list, inputEl, prefix) {
           inputEl,
           prefix
         );
-        hideSuggestions();
       };
 
       el.onmouseenter = () => {
@@ -457,34 +477,190 @@ function showSuggestions(list, inputEl, prefix) {
   updateSelection();
 }
 
-// Atualizar a seleção visual das macros
+// Atualiza a seleção visual das sugestões, destacando a opção ativa 
 function updateSelection() {
 
   if (!activeSuggestions) return;
   const theme = getThemeColors();
+  activeSuggestions
+    .querySelectorAll('.item')
+    .forEach((el, i) => {
 
-  const items =
-    activeSuggestions.querySelectorAll('.item');
+      const active =
+        i === selectedIndex;
 
-  items.forEach((el, i) => {
-    const active = i === selectedIndex;
-    el.style.background = active
-      ? theme.selected
-      : theme.background;
+      el.style.background = active
+        ? theme.selected
+        : theme.background;
 
-    el.style.color = theme.text;
+      el.style.color = theme.text;
 
-    if (active) {
-      el.scrollIntoView({
-        block: 'nearest'
-      });
+      if (active) {
+        el.scrollIntoView({
+          block: 'nearest'
+        });
+      }
+    });
+}
+
+// Aplica a macro selecionada no input, substituindo o prefixo pelo conteúdo da macro
+function applySuggestion(
+  macro,
+  input,
+  prefix
+) {
+
+  const regex = new RegExp(
+    escapeRegExp(prefix) + '\\s*$',
+    'i'
+  );
+
+  const value = getElementValue(input);
+
+  const content = isPlainTextElement(input)
+    ? htmlToPlainText(macro.text)
+    : macro.text;
+
+  setElementValue(
+    input,
+    value.replace(regex, content)
+  );
+
+  hideSuggestions();
+}
+
+// Oculta o dropdown de sugestões e reseta o estado
+function hideSuggestions(reset = true) {
+
+  activeSuggestions?.remove();
+  activeSuggestions = null;
+
+  if (reset) {
+    currentSuggestions = [];
+    selectedIndex = -1;
+  }
+}
+
+// -- Monitoramento --
+
+// Monitora inputs editáveis para mostrar sugestões de macros conforme o usuário digita
+function monitorInput(el) {
+
+  if (monitoredElements.has(el)) return;
+  monitoredElements.add(el);
+
+  // captura digitação e alterações
+  el.addEventListener('input', e => {
+    updateSuggestions(
+      e.target || e.srcElement
+    );
+  });
+
+  // captura teclas para navegação no dropdown
+  el.addEventListener('keyup', e => {
+    updateSuggestions(
+      e.target || e.srcElement
+    );
+  });
+
+  // captura colagem de texto para atualizar sugestões
+  el.addEventListener('paste', e => {
+    updateSuggestions(
+      e.target || e.srcElement
+    );
+  });
+
+  el.addEventListener('keydown', e => {
+
+    if (
+      !activeSuggestions ||
+      currentInput !== e.target
+    ) return;
+
+    switch (e.key) {
+
+      case 'ArrowDown':
+        e.preventDefault();
+        selectedIndex = Math.min(
+          selectedIndex + 1,
+          currentSuggestions.length - 1
+        );
+        updateSelection();
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        selectedIndex = Math.max(
+          selectedIndex - 1,
+          0
+        );
+        updateSelection();
+        break;
+
+      case 'Tab':
+      case 'Enter':
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (selectedIndex >= 0) {
+          applySuggestion(
+            currentSuggestions[selectedIndex],
+            currentInput,
+            inputState.get(currentInput)
+              ?.lastPrefix || ''
+          );
+        }
+
+        break;
+
+      case 'Escape':
+        hideSuggestions();
+        break;
     }
   });
 }
 
-// Atualizar tema em tempo real
-window.matchMedia('(prefers-color-scheme: dark)')
-  .addEventListener('change', () => {
+// monitora foco atual
+setInterval(() => {
+
+  const el = document.activeElement;
+
+  if (
+    el &&
+    (
+      el.matches?.(EDITABLE_SELECTORS) ||
+      el.isContentEditable
+    )
+  ) {
+    monitorInput(el);
+  }
+
+}, 500);
+
+// -- Eventos Globais --
+
+// Fecha sugestões ao clicar fora ou apertar ESC
+document.addEventListener('click', e => {
+  if (
+    activeSuggestions &&
+    !activeSuggestions.contains(e.target)
+  ) {
+    hideSuggestions();
+  }
+});
+
+// Fecha sugestões ao apertar ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    hideSuggestions();
+  }
+});
+
+// Atualiza tema automaticamente
+DARK_MODE_QUERY.addEventListener(
+  'change',
+  () => {
 
     if (
       activeSuggestions &&
@@ -495,75 +671,50 @@ window.matchMedia('(prefers-color-scheme: dark)')
       showSuggestions(
         currentSuggestions,
         currentInput,
-        inputState.get(currentInput)?.lastPrefix || ''
+        inputState.get(currentInput)
+          ?.lastPrefix || ''
       );
     }
-  });
-
-// Aplicar macro
-function applySuggestion(macro, input, prefix) {
-  const value = getElementValue(input);
-
-  const regex = new RegExp(escapeRegExp(prefix) + '\\s*$', 'i');
-
-  const content = isPlainTextElement(input)
-    ? htmlToPlainText(macro.text)
-    : macro.text;
-
-  setElementValue(input, value.replace(regex, content));
-
-  hideSuggestions();
-}
-
-// Esconder UI da macro no input
-function hideSuggestions(reset = true) {
-  if (activeSuggestions) {
-    activeSuggestions.remove();
-    activeSuggestions = null;
   }
+);
 
-  if (reset) {
-    currentSuggestions = [];
-    selectedIndex = -1;
-  }
-}
+// -- Init --
 
-
-// Eventos Globais
-document.addEventListener('click', (e) => {
-  if (activeSuggestions && !activeSuggestions.contains(e.target)) {
-    hideSuggestions();
-  }
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') hideSuggestions();
-});
-
-//Init
+// Inicializa a extensão, carregando macros e monitorando inputs editáveis na página
 async function init() {
   await loadMacrosCache();
 
-  const elements = getEditableElements();
-  elements.forEach(monitorInput);
+  getEditableElements()
+    .forEach(monitorInput);
 
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach(m => {
-      m.addedNodes.forEach(node => {
-        if (node.nodeType !== 1) return;
+  // monitora dinamicamente novos inputs adicionados à página
+  const observer = new MutationObserver(
+    mutations => {
+      mutations.forEach(m => {
+        m.addedNodes.forEach(node => {
+          if (node.nodeType !== 1) return;
 
-        if (node.matches?.(EDITABLE_SELECTORS)) {
-          monitorInput(node);
-        }
+          if (
+            node.matches?.(
+              EDITABLE_SELECTORS
+            )
+          ) {
+            monitorInput(node);
+          }
 
-        node.querySelectorAll?.(EDITABLE_SELECTORS)
-          .forEach(monitorInput);
+          node.querySelectorAll?.(
+            EDITABLE_SELECTORS
+          ).forEach(monitorInput);
 
-        node.shadowRoot?.querySelectorAll?.(EDITABLE_SELECTORS)
-          .forEach(monitorInput);
+          node.shadowRoot
+            ?.querySelectorAll?.(
+              EDITABLE_SELECTORS
+            )
+            .forEach(monitorInput);
+        });
       });
-    });
-  });
+    }
+  );
 
   observer.observe(document.body, {
     childList: true,
@@ -572,8 +723,9 @@ async function init() {
 }
 
 // bootstrap
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+document.readyState === 'loading'
+  ? document.addEventListener(
+      'DOMContentLoaded',
+      init
+    )
+  : init();
