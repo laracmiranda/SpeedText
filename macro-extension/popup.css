@@ -318,11 +318,6 @@ input::placeholder,
   word-break:break-word;
 }
 
-#form-section .rich-editor,
-#edit-section .rich-editor{
-  height:120px;
-}
-
 .rich-editor *{
   max-width:100%;
 }
