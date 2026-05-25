@@ -1,11 +1,11 @@
-# <img width="52" height="52" alt="SpeedText Logo" src="../Macro_Utility/site/assets/logo.svg" /> SpeedText
+# <img width="26" height="26" alt="SpeedText Logo" src="https://github.com/laracmiranda/SpeedText/blob/main/site/assets/logo.svg" /> SpeedText
 
 <p align="left">
 
-![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-2a4bdd.svg)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-2a4bdd.svg)
-![HTML5](https://img.shields.io/badge/HTML5-2a4bdd.svg)
-![CSS3](https://img.shields.io/badge/CSS3-2a4bdd.svg)
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-826cff.svg)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-826cff.svg)
+![HTML5](https://img.shields.io/badge/HTML5-826cff.svg)
+![CSS3](https://img.shields.io/badge/CSS3-826cff.svg)
 
 Extensão para Chrome que permite criar, gerenciar e expandir macros de texto em qualquer site com autocomplete inteligente.
 Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos instantaneamente.
@@ -48,7 +48,7 @@ Digite um atalho iniciado com `\` em qualquer campo de texto:
 
 O SpeedText exibe automaticamente sugestões de macros disponíveis.
 
-Ao pressionar `Enter` ou `Tab`, o conteúdo é expandido instantaneamente:
+Ao pressionar `Tab` ou selecionar com o mouse, o conteúdo é expandido instantaneamente:
 
 ```txt
 Olá! Segue meu e-mail para contato:
