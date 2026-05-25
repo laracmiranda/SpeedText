@@ -6,6 +6,8 @@
  * it under the terms of the GNU General Public License v2.0.
  */
 
+const $ = (id) => document.getElementById(id);
+
 const Icons = {
   bold: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -48,7 +50,27 @@ const Icons = {
 let macros = [];
 let editingId = null;
 
-// Carregar macros do armazenamento
+/* =========================
+   Helpers
+========================= */
+
+function generateId() {
+  return crypto.randomUUID();
+}
+
+function escapeHTML(value = '') {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/* =========================
+   Storage
+========================= */
+
 function loadMacros() {
   chrome.storage.sync.get('macros', (result) => {
     macros = result.macros || [];
@@ -56,101 +78,235 @@ function loadMacros() {
   });
 }
 
-// Salvar macros no armazenamento
 function saveMacros() {
   chrome.storage.sync.set({ macros }, () => {
-    loadMacros();
+    renderMacros();
   });
 }
 
-// Adicionar nova macro
+/* =========================
+   Toasts
+========================= */
+
+function showToast({
+  title = '',
+  message = '',
+  type = 'info',
+  duration = 3000
+}) {
+
+  const container = $('toast-container');
+
+  if (container.children.length >= 4) {
+    container.firstChild.remove();
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+
+  toast.innerHTML = `
+    <div class="toast-title">
+      ${escapeHTML(title)}
+    </div>
+
+    <div class="toast-message">
+      ${escapeHTML(message)}
+    </div>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+
+    setTimeout(() => {
+      toast.remove();
+    }, 180);
+
+  }, duration);
+}
+
+/* =========================
+   Tabs
+========================= */
+
+function openTab(tabName) {
+
+  document.querySelectorAll('.tab-content')
+    .forEach(tab => tab.classList.remove('active'));
+
+  document.querySelectorAll('.tab-button')
+    .forEach(btn => btn.classList.remove('active'));
+
+  $(tabName)?.classList.add('active');
+  $(`tab-${tabName}`)?.classList.add('active');
+}
+
+/* =========================
+   Modal
+========================= */
+
+function openModal({
+  title,
+  content,
+  actions = []
+}) {
+
+  const overlay = $('modal-overlay');
+
+  $('modal-title').textContent = title;
+  $('modal-body').innerHTML = content;
+
+  const actionsEl = $('modal-actions');
+  actionsEl.innerHTML = '';
+
+  actions.forEach(action => {
+
+    const btn = document.createElement('button');
+
+    btn.textContent = action.label;
+    btn.className = action.className || 'secondary-btn';
+
+    btn.addEventListener('click', () => {
+      action.onClick?.();
+    });
+
+    actionsEl.appendChild(btn);
+  });
+
+  overlay.classList.remove('hidden');
+}
+
+function closeModal() {
+  $('modal-overlay').classList.add('hidden');
+}
+
+/* =========================
+   Macro CRUD
+========================= */
+
 function addMacro() {
 
-  const rawShortcut = document.getElementById('shortcut')
+  const rawShortcut = $('shortcut')
     .value
     .trim()
     .replace(/^\\+/, '');
 
   const shortcut = '\\' + rawShortcut;
 
-  const name = document.getElementById('name').value.trim();
-
-  const text = document.getElementById('rich-editor').innerHTML.trim();
+  const name = $('name').value.trim();
+  const text = $('rich-editor').innerHTML.trim();
 
   if (!rawShortcut || !name || !text) {
-    alert('Preencha todos os campos!');
+
+    showToast({
+      title: 'Campos obrigatórios',
+      message: 'Preencha todos os campos da macro.',
+      type: 'error'
+    });
+
     return;
   }
 
   if (macros.some(m => m.shortcut === shortcut)) {
-    alert('Este atalho já existe!');
+
+    showToast({
+      title: 'Atalho duplicado',
+      message: 'Já existe uma macro usando este shortcut.',
+      type: 'error'
+    });
+
     return;
   }
 
-  const newMacro = {
-    id: Date.now().toString(),
+  macros.push({
+    id: generateId(),
     shortcut,
     name,
     text
-  };
-
-  macros.push(newMacro);
+  });
 
   saveMacros();
 
-  document.getElementById('shortcut').value = '';
-  document.getElementById('name').value = '';
-  document.getElementById('rich-editor').innerHTML = '';
+  $('shortcut').value = '';
+  $('name').value = '';
+  $('rich-editor').innerHTML = '';
+
+  showToast({
+    title: 'Macro criada',
+    message: 'Macro adicionada com sucesso.',
+    type: 'success'
+  });
 }
 
-// Edição de macro
 function startEdit(id) {
+
   openTab('cadastrar');
 
   const macro = macros.find(m => m.id === id);
+
   if (!macro) return;
 
   editingId = id;
 
-  document.getElementById('form-section').style.display = 'none';
-  document.getElementById('edit-section').style.display = 'block';
+  $('form-section').style.display = 'none';
+  $('edit-section').style.display = 'block';
 
-  document.getElementById('edit-shortcut').value = macro.shortcut.replace(/^\\/, '');
-  document.getElementById('edit-name').value = macro.name;
-  document.getElementById('edit-rich-editor').innerHTML = macro.text;
+  $('edit-shortcut').value =
+    macro.shortcut.replace(/^\\/, '');
+
+  $('edit-name').value = macro.name;
+  $('edit-rich-editor').innerHTML = macro.text;
 }
 
-//Atualizar Macro
 function updateMacro() {
 
   if (!editingId) return;
 
-  const rawShortcut = document.getElementById('edit-shortcut')
+  const rawShortcut = $('edit-shortcut')
     .value
     .trim()
     .replace(/^\\+/, '');
 
   const shortcut = '\\' + rawShortcut;
 
-  const name = document.getElementById('edit-name').value.trim();
-
-  const text = document.getElementById('edit-rich-editor').innerHTML.trim();
+  const name = $('edit-name').value.trim();
+  const text = $('edit-rich-editor').innerHTML.trim();
 
   if (!rawShortcut || !name || !text) {
-    alert('Preencha todos os campos!');
+
+    showToast({
+      title: 'Campos obrigatórios',
+      message: 'Preencha todos os campos da macro.',
+      type: 'error'
+    });
+
     return;
   }
 
-  if (
+  const duplicated =
     macros.some(
-      m => m.id !== editingId && m.shortcut === shortcut
-    )
-  ) {
-    alert('Este atalho já existe em outra macro!');
+      m =>
+        m.id !== editingId &&
+        m.shortcut === shortcut
+    );
+
+  if (duplicated) {
+
+    showToast({
+      title: 'Atalho duplicado',
+      message: 'Já existe outra macro com este shortcut.',
+      type: 'error'
+    });
+
     return;
   }
 
-  const index = macros.findIndex(m => m.id === editingId);
+  const index =
+    macros.findIndex(m => m.id === editingId);
+
+  if (index === -1) return;
 
   macros[index] = {
     id: editingId,
@@ -161,49 +317,111 @@ function updateMacro() {
 
   saveMacros();
   cancelEdit();
+
+  showToast({
+    title: 'Macro atualizada',
+    message: 'Alterações salvas com sucesso.',
+    type: 'success'
+  });
 }
 
-// Cancelar Edição
 function cancelEdit() {
+
   editingId = null;
 
-  document.getElementById('form-section').style.display = 'block';
-  document.getElementById('edit-section').style.display = 'none';
+  $('form-section').style.display = 'block';
+  $('edit-section').style.display = 'none';
 
-  document.getElementById('edit-shortcut').value = '';
-  document.getElementById('edit-name').value = '';
-  document.getElementById('edit-rich-editor').innerHTML = '';
+  $('edit-shortcut').value = '';
+  $('edit-name').value = '';
+  $('edit-rich-editor').innerHTML = '';
 }
 
-// Renderizar lista de macros
+function deleteMacro(id) {
+
+  const macro = macros.find(m => m.id === id);
+
+  if (!macro) return;
+
+  openModal({
+    title: 'Excluir macro',
+
+    content: `
+      <p>
+        Deseja realmente excluir
+        <strong>${escapeHTML(macro.name)}</strong>?
+      </p>
+    `,
+
+    actions: [
+      {
+        label: 'Cancelar',
+        className: 'secondary-btn',
+        onClick: closeModal
+      },
+
+      {
+        label: 'Excluir',
+        className: 'primary-btn',
+
+        onClick: () => {
+
+          macros =
+            macros.filter(m => m.id !== id);
+
+          saveMacros();
+          closeModal();
+
+          showToast({
+            title: 'Macro excluída',
+            message: 'Macro removida com sucesso.',
+            type: 'success'
+          });
+        }
+      }
+    ]
+  });
+}
+
+/* =========================
+   Renderização
+========================= */
+
+function renderMacros() {
+  renderMacroList(macros);
+}
+
 function renderMacroList(listData) {
 
-  const list = document.getElementById('macros-list');
-  const empty = document.getElementById('empty-state');
-  const counter = document.getElementById('macro-count');
+  const list = $('macros-list');
+  const empty = $('empty-state');
+  const counter = $('macro-count');
 
   list.innerHTML = '';
 
-  counter.textContent = macros.length;
+  counter.textContent =
+    listData.length === macros.length
+      ? macros.length
+      : `${listData.length}/${macros.length}`;
 
   if (!listData.length) {
 
     const searching =
-      document.getElementById('search-input')
-      .value
-      .trim()
-      .length > 0;
+      $('search-input')
+        .value
+        .trim()
+        .length > 0;
 
     empty.innerHTML = searching
       ? `
         <div class="empty-icon">👻</div>
         <h3>Nenhuma macro encontrada</h3>
-        <p>Tente buscar por outro nome ou atalho.</p>
+        <p>Tente buscar outro nome ou atalho.</p>
       `
       : `
         <div class="empty-icon">👻</div>
         <h3>Nenhuma macro ainda</h3>
-        <p>Crie sua primeira na aba “Criar”.</p>
+        <p>Crie sua primeira macro.</p>
       `;
 
     empty.style.display = 'block';
@@ -223,11 +441,11 @@ function renderMacroList(listData) {
       <div class="macro-info">
 
         <div class="macro-name">
-          ${macro.name}
+          ${escapeHTML(macro.name)}
         </div>
 
         <span class="macro-shortcut">
-          ${macro.shortcut}
+          ${escapeHTML(macro.shortcut)}
         </span>
 
       </div>
@@ -257,57 +475,240 @@ function renderMacroList(listData) {
   });
 }
 
-// Renderizar lista de macros
-function renderMacros() {
-  renderMacroList(macros);
-}
-
-// Filtrar macros
 function filterMacros() {
 
-  const search = document
-    .getElementById('search-input')
-    .value
-    .toLowerCase();
+  const search =
+    $('search-input')
+      .value
+      .toLowerCase();
 
-  const filtered = macros.filter(m =>
-    m.shortcut.toLowerCase().includes(search) ||
-    m.name.toLowerCase().includes(search)
-  );
+  const filtered =
+    macros.filter(m =>
+      m.shortcut.toLowerCase().includes(search) ||
+      m.name.toLowerCase().includes(search)
+    );
 
   renderMacroList(filtered);
 }
 
-// Deletar macro
-function deleteMacro(id) {
-  if (confirm('Deletar esta macro?')) {
-    macros = macros.filter(m => m.id !== id);
-    saveMacros();
+/* =========================
+   Importação / Exportação
+========================= */
+
+function exportMacros() {
+
+  if (!macros.length) {
+
+    showToast({
+      title: 'Nada para exportar',
+      message: 'Nenhuma macro cadastrada.',
+      type: 'error'
+    });
+
+    return;
   }
+
+  const data =
+    JSON.stringify(macros, null, 2);
+
+  const blob =
+    new Blob([data], {
+      type: 'application/json'
+    });
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = `macros-${Date.now()}.json`;
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+
+  showToast({
+    title: 'Exportação concluída',
+    message: 'Arquivo exportado com sucesso.',
+    type: 'success'
+  });
 }
 
-// Tab sistem
-function openTab(tabName) {
-  document.querySelectorAll('.tab-content')
-    .forEach(t => t.classList.remove('active'));
+function importMacros(file) {
 
-  const activeTab = document.getElementById(tabName);
-  if (activeTab) activeTab.classList.add('active');
+  const reader = new FileReader();
 
-  document.querySelectorAll('.tab-button')
-    .forEach(btn => {
-      btn.classList.remove('active');
-      if (btn.id === `tab-${tabName}`) {
-        btn.classList.add('active');
+  reader.onload = (e) => {
+
+    try {
+
+      const imported =
+        JSON.parse(e.target.result);
+
+      if (!Array.isArray(imported)) {
+
+        showToast({
+          title: 'Arquivo inválido',
+          message: 'O JSON informado é inválido.',
+          type: 'error'
+        });
+
+        return;
       }
+
+      const valid =
+        imported.filter(m =>
+          m.shortcut &&
+          m.name &&
+          m.text
+        );
+
+      if (!valid.length) {
+
+        showToast({
+          title: 'Nenhuma macro válida',
+          message: 'O arquivo não contém macros válidas.',
+          type: 'error'
+        });
+
+        return;
+      }
+
+      showImportModeModal(valid);
+
+    } catch (err) {
+
+      showToast({
+        title: 'Erro na importação',
+        message: 'Falha ao ler o arquivo.',
+        type: 'error'
+      });
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function showImportModeModal(validMacros) {
+
+  openModal({
+    title: 'Importar macros',
+
+    content: `
+      <p class="modal-text">
+        Como deseja importar as macros?
+      </p>
+
+      <div class="import-options">
+
+        <button
+          id="merge-import-btn"
+          class="secondary-btn modal-option-btn"
+        >
+          Mesclar macros
+        </button>
+
+        <button
+          id="replace-import-btn"
+          class="primary-btn modal-option-btn"
+        >
+          Substituir tudo
+        </button>
+
+      </div>
+    `,
+
+    actions: [
+      {
+        label: 'Cancelar',
+        className: 'secondary-btn',
+        onClick: closeModal
+      }
+    ]
+  });
+
+  requestAnimationFrame(() => {
+
+    $('merge-import-btn')
+      ?.addEventListener('click', () => {
+
+        closeModal();
+        mergeImportedMacros(validMacros);
+      });
+
+    $('replace-import-btn')
+      ?.addEventListener('click', () => {
+
+        macros = validMacros.map(m => ({
+          id: generateId(),
+          ...m
+        }));
+
+        saveMacros();
+        closeModal();
+
+        showToast({
+          title: 'Importação concluída',
+          message: 'Macros substituídas com sucesso.',
+          type: 'success'
+        });
+      });
+  });
+}
+
+function mergeImportedMacros(validMacros) {
+
+  const duplicates = [];
+
+  validMacros.forEach(importedMacro => {
+
+    const existing =
+      macros.find(
+        m => m.shortcut === importedMacro.shortcut
+      );
+
+    if (existing) {
+
+      duplicates.push({
+        existing,
+        imported: importedMacro
+      });
+
+      return;
+    }
+
+    macros.push({
+      id: generateId(),
+      ...importedMacro
     });
+  });
+
+  if (!duplicates.length) {
+
+    saveMacros();
+
+    showToast({
+      title: 'Importação concluída',
+      message: 'Macros importadas sem conflitos.',
+      type: 'success'
+    });
+
+    return;
+  }
+
+  resolveDuplicatesModal(duplicates);
 }
 
 function replaceMacro(item) {
-  const index = macros.findIndex(m => m.shortcut === item.imported.shortcut);
+
+  const index =
+    macros.findIndex(
+      m => m.shortcut === item.imported.shortcut
+    );
 
   const newMacro = {
-    id: Date.now().toString() + Math.random(),
+    id: generateId(),
     ...item.imported
   };
 
@@ -318,245 +719,212 @@ function replaceMacro(item) {
   }
 }
 
-// função para Exportar Macros
-function exportMacros() {
-  if (!macros.length) {
-    alert('Nenhuma macro para exportar.');
-    return;
-  }
+function resolveDuplicatesModal(duplicates) {
 
-  const data = JSON.stringify(macros, null, 2);
+  let current = 0;
 
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  function nextConflict() {
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `macros-${Date.now()}.json`;
-  a.click();
+    if (current >= duplicates.length) {
 
-  URL.revokeObjectURL(url);
-}
+      saveMacros();
 
-// função para Importar Macros
-function importMacros(file) {
-  const reader = new FileReader();
-
-  reader.onload = (e) => {
-    try {
-      const imported = JSON.parse(e.target.result);
-
-      if (!Array.isArray(imported)) {
-        alert('Arquivo inválido.');
-        return;
-      }
-
-      const valid = imported.filter(m => m.shortcut && m.name && m.text);
-
-      if (!valid.length) {
-        alert('Nenhuma macro válida encontrada.');
-        return;
-      }
-
-      const mode = confirm(
-        'OK = MESCLAR (manter existentes)\nCancelar = SUBSTITUIR TUDO'
-      );
-
-      // Substituir tudo
-      if (!mode) {
-        const confirmReplace = confirm(
-          'Isso vai APAGAR todas as macros atuais. Continuar?'
-        );
-
-        if (!confirmReplace) return;
-
-        macros = valid.map(m => ({
-          id: Date.now().toString() + Math.random(),
-          shortcut: m.shortcut,
-          name: m.name,
-          text: m.text
-        }));
-
-        saveMacros();
-        alert('Macros substituídas com sucesso!');
-        return;
-      }
-
-      // Mesclar e detectar duplicidade de macros
-      let duplicates = [];
-
-      valid.forEach(importedMacro => {
-        const existing = macros.find(m => m.shortcut === importedMacro.shortcut);
-
-        if (existing) {
-          duplicates.push({
-            imported: importedMacro,
-            existing
-          });
-        } else {
-          macros.push({
-            id: Date.now().toString() + Math.random(),
-            ...importedMacro
-          });
-        }
+      showToast({
+        title: 'Importação concluída',
+        message: 'Conflitos resolvidos com sucesso.',
+        type: 'success'
       });
 
-      // Se não houver conflitos
-      if (!duplicates.length) {
-        saveMacros();
-        alert('Importação concluída sem conflitos!');
-        return;
-      }
+      closeModal();
 
-      // Resolver duplicados
-      resolveDuplicates(duplicates);
-
-    } catch (err) {
-      alert('Erro ao importar arquivo.');
-    }
-  };
-
-  reader.readAsText(file);
-}
-
-function resolveDuplicates(duplicates) {
-  let skipAll = false;
-  let overwriteAll = false;
-
-  duplicates.forEach((item, index) => {
-    if (skipAll) return;
-
-    if (overwriteAll) {
-      replaceMacro(item);
       return;
     }
 
-    const action = prompt(
-      `Conflito detectado:\n\nShortcut: ${item.imported.shortcut}\n\nDigite:\n1 = Substituir\n2 = Pular\n3 = Substituir TODOS\n4 = Pular TODOS`
-    );
+    const item = duplicates[current];
 
-    switch (action) {
-      case '1':
-        replaceMacro(item);
-        break;
+    openModal({
+      title: 'Conflito de macro',
 
-      case '2':
-        break;
+      content: `
+        <div class="conflict-box">
 
-      case '3':
-        overwriteAll = true;
-        replaceMacro(item);
-        break;
+          <p>
+            O atalho
+            <strong>
+              ${escapeHTML(item.imported.shortcut)}
+            </strong>
+            já existe.
+          </p>
 
-      case '4':
-        skipAll = true;
-        break;
+          <div class="conflict-preview">
 
-      default:
-        break;
-    }
-  });
+            <div class="conflict-column">
+              <span>Atual</span>
+              <strong>
+                ${escapeHTML(item.existing.name)}
+              </strong>
+            </div>
 
-  saveMacros();
-  alert('Importação concluída com resolução de conflitos.');
-}
+            <div class="conflict-column">
+              <span>Importada</span>
+              <strong>
+                ${escapeHTML(item.imported.name)}
+              </strong>
+            </div>
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  loadMacros();
+          </div>
 
-  document.getElementById('add-macro-btn').addEventListener('click', addMacro);
-  document.getElementById('update-macro-btn').addEventListener('click', updateMacro);
-  document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
-  document.getElementById('search-input').addEventListener('input', filterMacros);
+        </div>
+      `,
 
-  document.getElementById('tab-cadastrar').addEventListener('click', () => openTab('cadastrar'));
-  document.getElementById('tab-visualizar').addEventListener('click', () => openTab('visualizar'));
+      actions: [
 
-  document.getElementById('bold-btn').innerHTML = Icons.bold;
-  document.getElementById('italic-btn').innerHTML = Icons.italic;
-  document.getElementById('list-btn').innerHTML = Icons.list;
+        {
+          label: 'Pular',
+          className: 'secondary-btn',
 
-  document.getElementById('edit-bold-btn').innerHTML = Icons.bold;
-  document.getElementById('edit-italic-btn').innerHTML = Icons.italic;
-  document.getElementById('edit-list-btn').innerHTML = Icons.list;
+          onClick: () => {
+            current++;
+            nextConflict();
+          }
+        },
 
-  // Eventos Lista
+        {
+          label: 'Substituir',
+          className: 'primary-btn',
 
-  // Editar
-  document.getElementById('macros-list').addEventListener('click', (e) => {
-
-    const editButton = e.target.closest('.edit-btn');
-    const deleteButton = e.target.closest('.delete-btn');
-
-    if (editButton) {
-      startEdit(editButton.dataset.id);
-    }
-
-    if (deleteButton) {
-      deleteMacro(deleteButton.dataset.id);
-    }
-  });
-
-  // Exportar
-  document.getElementById('export-btn').addEventListener('click', exportMacros);
-
-  // Importar
-  document.getElementById('import-btn').addEventListener('click', () => {
-    document.getElementById('import-file').click();
-  });
-
-  document.getElementById('import-file').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) importMacros(file);
-
-    e.target.value = '';
-  });
-
-  // Formatação
-  function setupEditorToolbar({
-    editorId,
-    boldBtnId,
-    italicBtnId,
-    listBtnId
-  }) {
-
-    const editor = document.getElementById(editorId);
-
-    const boldBtn = document.getElementById(boldBtnId);
-    const italicBtn = document.getElementById(italicBtnId);
-    const listBtn = document.getElementById(listBtnId);
-
-    // Bold
-    boldBtn?.addEventListener('click', () => {
-      editor.focus();
-      document.execCommand('bold');
-    });
-
-    // Italic
-    italicBtn?.addEventListener('click', () => {
-      editor.focus();
-      document.execCommand('italic');
-    });
-
-    // Lista
-    listBtn?.addEventListener('click', () => {
-      editor.focus();
-      document.execCommand('insertUnorderedList');
-    });
-
-    // Limpeza de <br>
-    editor?.addEventListener('input', () => {
-
-      if (
-        editor.innerHTML === '<br>' ||
-        editor.innerHTML === '<div><br></div>'
-      ) {
-        editor.innerHTML = '';
-      }
+          onClick: () => {
+            replaceMacro(item);
+            current++;
+            nextConflict();
+          }
+        }
+      ]
     });
   }
-  // Toolbar Criar
+
+  nextConflict();
+}
+
+/* =========================
+   Toolbar
+========================= */
+
+function setupEditorToolbar({
+  editorId,
+  boldBtnId,
+  italicBtnId,
+  listBtnId
+}) {
+
+  const editor = $(editorId);
+
+  const boldBtn = $(boldBtnId);
+  const italicBtn = $(italicBtnId);
+  const listBtn = $(listBtnId);
+
+  boldBtn?.addEventListener('click', () => {
+    editor.focus();
+    document.execCommand('bold');
+  });
+
+  italicBtn?.addEventListener('click', () => {
+    editor.focus();
+    document.execCommand('italic');
+  });
+
+  listBtn?.addEventListener('click', () => {
+    editor.focus();
+    document.execCommand('insertUnorderedList');
+  });
+
+  editor?.addEventListener('input', () => {
+
+    if (
+      editor.innerHTML === '<br>' ||
+      editor.innerHTML === '<div><br></div>'
+    ) {
+      editor.innerHTML = '';
+    }
+  });
+}
+
+/* =========================
+   Init
+========================= */
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  loadMacros();
+
+  $('add-macro-btn')
+    .addEventListener('click', addMacro);
+
+  $('update-macro-btn')
+    .addEventListener('click', updateMacro);
+
+  $('cancel-edit-btn')
+    .addEventListener('click', cancelEdit);
+
+  $('search-input')
+    .addEventListener('input', filterMacros);
+
+  $('tab-cadastrar')
+    .addEventListener('click', () => {
+      openTab('cadastrar');
+    });
+
+  $('tab-visualizar')
+    .addEventListener('click', () => {
+      openTab('visualizar');
+    });
+
+  $('bold-btn').innerHTML = Icons.bold;
+  $('italic-btn').innerHTML = Icons.italic;
+  $('list-btn').innerHTML = Icons.list;
+
+  $('edit-bold-btn').innerHTML = Icons.bold;
+  $('edit-italic-btn').innerHTML = Icons.italic;
+  $('edit-list-btn').innerHTML = Icons.list;
+
+  $('macros-list')
+    .addEventListener('click', (e) => {
+
+      const editButton =
+        e.target.closest('.edit-btn');
+
+      const deleteButton =
+        e.target.closest('.delete-btn');
+
+      if (editButton) {
+        startEdit(editButton.dataset.id);
+      }
+
+      if (deleteButton) {
+        deleteMacro(deleteButton.dataset.id);
+      }
+    });
+
+  $('export-btn')
+    .addEventListener('click', exportMacros);
+
+  $('import-btn')
+    .addEventListener('click', () => {
+      $('import-file').click();
+    });
+
+  $('import-file')
+    .addEventListener('change', (e) => {
+
+      const file = e.target.files[0];
+
+      if (file) {
+        importMacros(file);
+      }
+
+      e.target.value = '';
+    });
+
   setupEditorToolbar({
     editorId: 'rich-editor',
     boldBtnId: 'bold-btn',
@@ -564,7 +932,6 @@ document.addEventListener('DOMContentLoaded', () => {
     listBtnId: 'list-btn'
   });
 
-  // Toolbar Editar
   setupEditorToolbar({
     editorId: 'edit-rich-editor',
     boldBtnId: 'edit-bold-btn',
