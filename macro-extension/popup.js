@@ -15,6 +15,7 @@ const Icons = {
       <path d="M7 13h7a4 4 0 0 1 0 8H7z" stroke="currentColor" stroke-width="2"/>
     </svg>
   `,
+
   italic: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M19 4h-9" stroke="currentColor" stroke-width="2"/>
@@ -22,6 +23,7 @@ const Icons = {
       <path d="M15 4L9 20" stroke="currentColor" stroke-width="2"/>
     </svg>
   `,
+
   list: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M8 6h13" stroke="currentColor" stroke-width="2"/>
@@ -32,12 +34,14 @@ const Icons = {
       <circle cx="4" cy="18" r="1" fill="currentColor"/>
     </svg>
   `,
+
   edit: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M12 20h9" stroke="currentColor" stroke-width="2"/>
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="2"/>
     </svg>
   `,
+
   trash: `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M3 6h18" stroke="currentColor" stroke-width="2"/>
@@ -59,7 +63,7 @@ function generateId() {
 }
 
 function escapeHTML(value = '') {
-  return value
+  return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -67,19 +71,79 @@ function escapeHTML(value = '') {
     .replace(/'/g, '&#039;');
 }
 
+function normalizeShortcut(value = '') {
+  return '\\' + value.trim().replace(/^\\+/, '');
+}
+
+function clearCreateForm() {
+  $('shortcut').value = '';
+  $('name').value = '';
+  $('rich-editor').innerHTML = '';
+}
+
+function clearEditForm() {
+  $('edit-shortcut').value = '';
+  $('edit-name').value = '';
+  $('edit-rich-editor').innerHTML = '';
+}
+
+function validateMacro({
+  shortcut,
+  name,
+  text,
+  ignoreId = null
+}) {
+
+  if (!shortcut || shortcut === '\\') {
+    return 'Shortcut inválido.';
+  }
+
+  if (!name.trim()) {
+    return 'Nome da macro é obrigatório.';
+  }
+
+  if (!text.trim()) {
+    return 'Texto da macro é obrigatório.';
+  }
+
+  const duplicated = macros.some(m =>
+    m.shortcut === shortcut &&
+    m.id !== ignoreId
+  );
+
+  if (duplicated) {
+    return 'Já existe uma macro usando este shortcut.';
+  }
+
+  return null;
+}
+
+function saveAndRender(showSuccess = false, successMessage = '') {
+
+  chrome.storage.sync.set({ macros }, () => {
+    renderMacros();
+
+    if (showSuccess) {
+      showToast({
+        title: 'Sucesso',
+        message: successMessage,
+        type: 'success'
+      });
+    }
+  });
+}
+
 /* =========================
    Storage
 ========================= */
 
 function loadMacros() {
-  chrome.storage.sync.get('macros', (result) => {
-    macros = result.macros || [];
-    renderMacros();
-  });
-}
 
-function saveMacros() {
-  chrome.storage.sync.set({ macros }, () => {
+  chrome.storage.sync.get('macros', (result) => {
+    macros = Array.isArray(result.macros)
+      ? result.macros
+      : [];
+
     renderMacros();
   });
 }
@@ -97,8 +161,10 @@ function showToast({
 
   const container = $('toast-container');
 
+  if (!container) return;
+
   if (container.children.length >= 4) {
-    container.firstChild.remove();
+    container.firstElementChild?.remove();
   }
 
   const toast = document.createElement('div');
@@ -117,6 +183,7 @@ function showToast({
   container.appendChild(toast);
 
   setTimeout(() => {
+
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(8px)';
 
@@ -154,17 +221,20 @@ function openModal({
 }) {
 
   const overlay = $('modal-overlay');
+  const actionsEl = $('modal-actions');
+
+  if (!overlay || !actionsEl) return;
 
   $('modal-title').textContent = title;
   $('modal-body').innerHTML = content;
 
-  const actionsEl = $('modal-actions');
   actionsEl.innerHTML = '';
 
   actions.forEach(action => {
 
     const btn = document.createElement('button');
 
+    btn.type = 'button';
     btn.textContent = action.label;
     btn.className = action.className || 'secondary-btn';
 
@@ -179,7 +249,7 @@ function openModal({
 }
 
 function closeModal() {
-  $('modal-overlay').classList.add('hidden');
+  $('modal-overlay')?.classList.add('hidden');
 }
 
 /* =========================
@@ -188,32 +258,24 @@ function closeModal() {
 
 function addMacro() {
 
-  const rawShortcut = $('shortcut')
-    .value
-    .trim()
-    .replace(/^\\+/, '');
-
-  const shortcut = '\\' + rawShortcut;
+  const shortcut = normalizeShortcut(
+    $('shortcut').value
+  );
 
   const name = $('name').value.trim();
   const text = $('rich-editor').innerHTML.trim();
 
-  if (!rawShortcut || !name || !text) {
+  const validationError = validateMacro({
+    shortcut,
+    name,
+    text
+  });
+
+  if (validationError) {
 
     showToast({
-      title: 'Campos obrigatórios',
-      message: 'Preencha todos os campos da macro.',
-      type: 'error'
-    });
-
-    return;
-  }
-
-  if (macros.some(m => m.shortcut === shortcut)) {
-
-    showToast({
-      title: 'Atalho duplicado',
-      message: 'Já existe uma macro usando este shortcut.',
+      title: 'Erro ao criar macro',
+      message: validationError,
       type: 'error'
     });
 
@@ -227,26 +289,21 @@ function addMacro() {
     text
   });
 
-  saveMacros();
+  clearCreateForm();
 
-  $('shortcut').value = '';
-  $('name').value = '';
-  $('rich-editor').innerHTML = '';
-
-  showToast({
-    title: 'Macro criada',
-    message: 'Macro adicionada com sucesso.',
-    type: 'success'
-  });
+  saveAndRender(
+    true,
+    'Macro adicionada com sucesso.'
+  );
 }
 
 function startEdit(id) {
 
-  openTab('cadastrar');
-
   const macro = macros.find(m => m.id === id);
 
   if (!macro) return;
+
+  openTab('cadastrar');
 
   editingId = id;
 
@@ -264,47 +321,34 @@ function updateMacro() {
 
   if (!editingId) return;
 
-  const rawShortcut = $('edit-shortcut')
-    .value
-    .trim()
-    .replace(/^\\+/, '');
-
-  const shortcut = '\\' + rawShortcut;
+  const shortcut = normalizeShortcut(
+    $('edit-shortcut').value
+  );
 
   const name = $('edit-name').value.trim();
   const text = $('edit-rich-editor').innerHTML.trim();
 
-  if (!rawShortcut || !name || !text) {
+  const validationError = validateMacro({
+    shortcut,
+    name,
+    text,
+    ignoreId: editingId
+  });
+
+  if (validationError) {
 
     showToast({
-      title: 'Campos obrigatórios',
-      message: 'Preencha todos os campos da macro.',
+      title: 'Erro ao atualizar macro',
+      message: validationError,
       type: 'error'
     });
 
     return;
   }
 
-  const duplicated =
-    macros.some(
-      m =>
-        m.id !== editingId &&
-        m.shortcut === shortcut
-    );
-
-  if (duplicated) {
-
-    showToast({
-      title: 'Atalho duplicado',
-      message: 'Já existe outra macro com este shortcut.',
-      type: 'error'
-    });
-
-    return;
-  }
-
-  const index =
-    macros.findIndex(m => m.id === editingId);
+  const index = macros.findIndex(m =>
+    m.id === editingId
+  );
 
   if (index === -1) return;
 
@@ -315,14 +359,12 @@ function updateMacro() {
     text
   };
 
-  saveMacros();
   cancelEdit();
 
-  showToast({
-    title: 'Macro atualizada',
-    message: 'Alterações salvas com sucesso.',
-    type: 'success'
-  });
+  saveAndRender(
+    true,
+    'Macro atualizada com sucesso.'
+  );
 }
 
 function cancelEdit() {
@@ -332,9 +374,7 @@ function cancelEdit() {
   $('form-section').style.display = 'block';
   $('edit-section').style.display = 'none';
 
-  $('edit-shortcut').value = '';
-  $('edit-name').value = '';
-  $('edit-rich-editor').innerHTML = '';
+  clearEditForm();
 }
 
 function deleteMacro(id) {
@@ -354,6 +394,7 @@ function deleteMacro(id) {
     `,
 
     actions: [
+
       {
         label: 'Cancelar',
         className: 'secondary-btn',
@@ -366,17 +407,16 @@ function deleteMacro(id) {
 
         onClick: () => {
 
-          macros =
-            macros.filter(m => m.id !== id);
+          macros = macros.filter(m =>
+            m.id !== id
+          );
 
-          saveMacros();
           closeModal();
 
-          showToast({
-            title: 'Macro excluída',
-            message: 'Macro removida com sucesso.',
-            type: 'success'
-          });
+          saveAndRender(
+            true,
+            'Macro removida com sucesso.'
+          );
         }
       }
     ]
@@ -396,6 +436,8 @@ function renderMacroList(listData) {
   const list = $('macros-list');
   const empty = $('empty-state');
   const counter = $('macro-count');
+
+  if (!list || !empty || !counter) return;
 
   list.innerHTML = '';
 
@@ -431,6 +473,8 @@ function renderMacroList(listData) {
 
   empty.style.display = 'none';
 
+  const fragment = document.createDocumentFragment();
+
   listData.forEach(macro => {
 
     const item = document.createElement('div');
@@ -453,6 +497,7 @@ function renderMacroList(listData) {
       <div class="macro-buttons">
 
         <button
+          type="button"
           class="icon-action edit-btn"
           data-id="${macro.id}"
           title="Editar"
@@ -461,6 +506,7 @@ function renderMacroList(listData) {
         </button>
 
         <button
+          type="button"
           class="icon-action delete-btn"
           data-id="${macro.id}"
           title="Excluir"
@@ -471,8 +517,10 @@ function renderMacroList(listData) {
       </div>
     `;
 
-    list.appendChild(item);
+    fragment.appendChild(item);
   });
+
+  list.appendChild(fragment);
 }
 
 function filterMacros() {
@@ -480,13 +528,13 @@ function filterMacros() {
   const search =
     $('search-input')
       .value
+      .trim()
       .toLowerCase();
 
-  const filtered =
-    macros.filter(m =>
-      m.shortcut.toLowerCase().includes(search) ||
-      m.name.toLowerCase().includes(search)
-    );
+  const filtered = macros.filter(m =>
+    m.shortcut.toLowerCase().includes(search) ||
+    m.name.toLowerCase().includes(search)
+  );
 
   renderMacroList(filtered);
 }
@@ -508,23 +556,22 @@ function exportMacros() {
     return;
   }
 
-  const data =
-    JSON.stringify(macros, null, 2);
+  const data = JSON.stringify(macros, null, 2);
 
-  const blob =
-    new Blob([data], {
-      type: 'application/json'
-    });
+  const blob = new Blob([data], {
+    type: 'application/json'
+  });
 
-  const url =
-    URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
 
   a.href = url;
   a.download = `macros-${Date.now()}.json`;
 
+  document.body.appendChild(a);
   a.click();
+  a.remove();
 
   URL.revokeObjectURL(url);
 
@@ -543,8 +590,7 @@ function importMacros(file) {
 
     try {
 
-      const imported =
-        JSON.parse(e.target.result);
+      const imported = JSON.parse(e.target.result);
 
       if (!Array.isArray(imported)) {
 
@@ -557,12 +603,17 @@ function importMacros(file) {
         return;
       }
 
-      const valid =
-        imported.filter(m =>
+      const valid = imported
+        .filter(m =>
           m.shortcut &&
           m.name &&
           m.text
-        );
+        )
+        .map(m => ({
+          shortcut: normalizeShortcut(m.shortcut),
+          name: m.name.trim(),
+          text: m.text.trim()
+        }));
 
       if (!valid.length) {
 
@@ -577,7 +628,7 @@ function importMacros(file) {
 
       showImportModeModal(valid);
 
-    } catch (err) {
+    } catch {
 
       showToast({
         title: 'Erro na importação',
@@ -603,6 +654,7 @@ function showImportModeModal(validMacros) {
       <div class="import-options">
 
         <button
+          type="button"
           id="merge-import-btn"
           class="secondary-btn modal-option-btn"
         >
@@ -610,6 +662,7 @@ function showImportModeModal(validMacros) {
         </button>
 
         <button
+          type="button"
           id="replace-import-btn"
           class="primary-btn modal-option-btn"
         >
@@ -635,7 +688,7 @@ function showImportModeModal(validMacros) {
 
         closeModal();
         mergeImportedMacros(validMacros);
-      });
+      }, { once: true });
 
     $('replace-import-btn')
       ?.addEventListener('click', () => {
@@ -645,15 +698,14 @@ function showImportModeModal(validMacros) {
           ...m
         }));
 
-        saveMacros();
         closeModal();
 
-        showToast({
-          title: 'Importação concluída',
-          message: 'Macros substituídas com sucesso.',
-          type: 'success'
-        });
-      });
+        saveAndRender(
+          true,
+          'Macros substituídas com sucesso.'
+        );
+
+      }, { once: true });
   });
 }
 
@@ -663,10 +715,9 @@ function mergeImportedMacros(validMacros) {
 
   validMacros.forEach(importedMacro => {
 
-    const existing =
-      macros.find(
-        m => m.shortcut === importedMacro.shortcut
-      );
+    const existing = macros.find(m =>
+      m.shortcut === importedMacro.shortcut
+    );
 
     if (existing) {
 
@@ -686,13 +737,10 @@ function mergeImportedMacros(validMacros) {
 
   if (!duplicates.length) {
 
-    saveMacros();
-
-    showToast({
-      title: 'Importação concluída',
-      message: 'Macros importadas sem conflitos.',
-      type: 'success'
-    });
+    saveAndRender(
+      true,
+      'Macros importadas sem conflitos.'
+    );
 
     return;
   }
@@ -702,10 +750,9 @@ function mergeImportedMacros(validMacros) {
 
 function replaceMacro(item) {
 
-  const index =
-    macros.findIndex(
-      m => m.shortcut === item.imported.shortcut
-    );
+  const index = macros.findIndex(m =>
+    m.shortcut === item.imported.shortcut
+  );
 
   const newMacro = {
     id: generateId(),
@@ -714,9 +761,10 @@ function replaceMacro(item) {
 
   if (index !== -1) {
     macros[index] = newMacro;
-  } else {
-    macros.push(newMacro);
+    return;
   }
+
+  macros.push(newMacro);
 }
 
 function resolveDuplicatesModal(duplicates) {
@@ -727,15 +775,12 @@ function resolveDuplicatesModal(duplicates) {
 
     if (current >= duplicates.length) {
 
-      saveMacros();
-
-      showToast({
-        title: 'Importação concluída',
-        message: 'Conflitos resolvidos com sucesso.',
-        type: 'success'
-      });
-
       closeModal();
+
+      saveAndRender(
+        true,
+        'Conflitos resolvidos com sucesso.'
+      );
 
       return;
     }
@@ -760,6 +805,7 @@ function resolveDuplicatesModal(duplicates) {
 
             <div class="conflict-column">
               <span>Atual</span>
+
               <strong>
                 ${escapeHTML(item.existing.name)}
               </strong>
@@ -767,6 +813,7 @@ function resolveDuplicatesModal(duplicates) {
 
             <div class="conflict-column">
               <span>Importada</span>
+
               <strong>
                 ${escapeHTML(item.imported.name)}
               </strong>
@@ -819,6 +866,8 @@ function setupEditorToolbar({
 
   const editor = $(editorId);
 
+  if (!editor) return;
+
   const boldBtn = $(boldBtnId);
   const italicBtn = $(italicBtnId);
   const listBtn = $(listBtnId);
@@ -838,7 +887,7 @@ function setupEditorToolbar({
     document.execCommand('insertUnorderedList');
   });
 
-  editor?.addEventListener('input', () => {
+  editor.addEventListener('input', () => {
 
     if (
       editor.innerHTML === '<br>' ||
@@ -858,37 +907,37 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMacros();
 
   $('add-macro-btn')
-    .addEventListener('click', addMacro);
+    ?.addEventListener('click', addMacro);
 
   $('update-macro-btn')
-    .addEventListener('click', updateMacro);
+    ?.addEventListener('click', updateMacro);
 
   $('cancel-edit-btn')
-    .addEventListener('click', cancelEdit);
+    ?.addEventListener('click', cancelEdit);
 
   $('search-input')
-    .addEventListener('input', filterMacros);
+    ?.addEventListener('input', filterMacros);
 
   $('tab-cadastrar')
-    .addEventListener('click', () => {
+    ?.addEventListener('click', () => {
       openTab('cadastrar');
     });
 
   $('tab-visualizar')
-    .addEventListener('click', () => {
+    ?.addEventListener('click', () => {
       openTab('visualizar');
     });
 
-  $('bold-btn').innerHTML = Icons.bold;
-  $('italic-btn').innerHTML = Icons.italic;
-  $('list-btn').innerHTML = Icons.list;
+  if ($('bold-btn')) $('bold-btn').innerHTML = Icons.bold;
+  if ($('italic-btn')) $('italic-btn').innerHTML = Icons.italic;
+  if ($('list-btn')) $('list-btn').innerHTML = Icons.list;
 
-  $('edit-bold-btn').innerHTML = Icons.bold;
-  $('edit-italic-btn').innerHTML = Icons.italic;
-  $('edit-list-btn').innerHTML = Icons.list;
+  if ($('edit-bold-btn')) $('edit-bold-btn').innerHTML = Icons.bold;
+  if ($('edit-italic-btn')) $('edit-italic-btn').innerHTML = Icons.italic;
+  if ($('edit-list-btn')) $('edit-list-btn').innerHTML = Icons.list;
 
   $('macros-list')
-    .addEventListener('click', (e) => {
+    ?.addEventListener('click', (e) => {
 
       const editButton =
         e.target.closest('.edit-btn');
@@ -906,17 +955,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
   $('export-btn')
-    .addEventListener('click', exportMacros);
+    ?.addEventListener('click', exportMacros);
 
   $('import-btn')
-    .addEventListener('click', () => {
-      $('import-file').click();
+    ?.addEventListener('click', () => {
+      $('import-file')?.click();
     });
 
   $('import-file')
-    .addEventListener('change', (e) => {
+    ?.addEventListener('change', (e) => {
 
-      const file = e.target.files[0];
+      const file = e.target.files?.[0];
 
       if (file) {
         importMacros(file);
