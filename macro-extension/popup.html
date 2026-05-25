@@ -1,172 +1,187 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerenciador de Macros</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      width: 350px;
-      padding: 10px;
-      margin: 0;
-      background: #f4f4f4;
-      color: #333;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: box-shadow 0.3s ease;
-    }
-    .card:hover {
-      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-    }
-    .tabs {
-      display: flex;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #e0e0e0;
-    }
-    .tab-button {
-      padding: 10px 20px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      color: #007bff;
-      transition: color 0.3s, border-bottom 0.3s;
-      border-bottom: 2px solid transparent;
-    }
-    .tab-button.active {
-      color: #0056b3;
-      border-bottom: 2px solid #0056b3;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    input, .rich-editor {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.3s;
-    }
-    input:focus, .rich-editor:focus {
-      border-color: #007bff;
-      outline: none;
-    }
-    .rich-editor {
-      min-height: 120px;
-      border: 1px solid #ddd;
-      overflow-y: auto;
-      background: #f9f9f9;
-    }
-    .format-buttons {
-      margin-bottom: 10px;
-      display: flex;
-      gap: 5px;
-    }
-    .format-button {
-      padding: 8px 12px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s;
-    }
-    .format-button:hover {
-      background: #0056b3;
-    }
-    .macro-item {
-      background: #ffffff;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      border-left: 4px solid #007bff;
-    }
-    .search-input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    button.outline {
-      background: transparent;
-      color: #007bff;
-      border: 1px solid #007bff;
-      transition: background 0.3s, color 0.3s;
-    }
-    button.outline:hover {
-      background: #e7f1ff;
-      color: #0056b3;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SpeedText</title>
+  <link rel="stylesheet" href="popup.css"/>
 </head>
+
 <body>
-  <div class="card">
+
+  <div class="app">
+    <header class="header">
+    <div class="logo-box">
+      <img
+        src="icons/logo.svg"
+        alt="MacroFlow"
+        class="logo-image"
+      />
+    </div>
+
+      <div>
+        <h1>SpeedText</h1>
+        <p>Atalhos de texto inteligentes</p>
+      </div>
+    </header>
+
+    <!-- Abas -->
     <div class="tabs">
-      <button id="tab-cadastrar" class="tab-button active">Cadastrar</button>
-      <button id="tab-visualizar" class="tab-button">Visualizar</button>
+      <button id="tab-cadastrar" class="tab-button active">
+        + Criar
+      </button>
+
+      <button id="tab-visualizar" class="tab-button">
+        ☰ Minhas macros
+        <span id="macro-count">0</span>
+      </button>
     </div>
 
+    <!-- Aba de criação -->
     <div id="cadastrar" class="tab-content active">
-      <!-- Seção para adicionar/editing macro -->
+
       <div id="form-section">
-        <input id="shortcut" placeholder="Atalho (ex: /endereco)" />
-        <input id="name" placeholder="Nome (ex: Endereço Completo)" />
-        <div id="rich-editor" class="rich-editor" contenteditable="true" placeholder="Texto a ser preenchido"></div>
-        <div class="format-buttons">
-          <button id="bold-btn">Negrito</button>
-          <button id="italic-btn">Itálico</button>
-          <button id="list-btn">Lista</button>
+
+        <div class="field">
+          <label>ATALHO</label>
+          <div class="shortcut-wrapper">
+            <span>\</span>
+            <input id="shortcut" placeholder="atalho" autocomplete="off"/>
+          </div>
         </div>
-        <button id="add-macro-btn">Adicionar Macro</button>
+
+        <div class="field">
+          <label>NOME</label>
+          <input id="name" placeholder="Ex: Assinatura de e-mail"/>
+        </div>
+
+        <div class="field">
+          <label>CONTEÚDO</label>
+          <div class="editor-wrapper">
+
+            <div class="toolbar">
+              <button id="bold-btn" class="toolbar-btn"></button>
+              <button id="italic-btn" class="toolbar-btn"></button>
+              <div class="divider"></div>
+              <button id="list-btn" class="toolbar-btn"></button>
+            </div>
+
+            <div
+              id="rich-editor"
+              class="rich-editor"
+              contenteditable="true"
+              data-placeholder="O conteúdo que será inserido no lugar do atalho..."
+            ></div>
+
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="add-macro-btn" class="primary-btn">
+            + Adicionar macro
+          </button>
+        </div>
+
       </div>
-      <div id="edit-section" style="display: none;">
-        <input id="edit-shortcut" placeholder="Atalho" />
-        <input id="edit-name" placeholder="Nome" />
-        <div id="edit-rich-editor" class="rich-editor" contenteditable="true" placeholder="Texto a ser preenchido"></div>
-        <div class="format-buttons">
-          <button id="edit-bold-btn">Negrito</button>
-          <button id="edit-italic-btn">Itálico</button>
-          <button id="edit-list-btn">Lista</button>
+
+      <!-- Aba de Edição -->
+      <div id="edit-section" style="display:none">
+
+        <div class="field">
+          <label>ATALHO</label>
+          <div class="shortcut-wrapper">
+            <span>\</span>
+            <input id="edit-shortcut" placeholder="atalho"/>
         </div>
-        <div>
-          <button id="update-macro-btn">Salvar</button>
-          <button id="cancel-edit-btn" class="outline">Cancelar</button>
         </div>
+
+        <div class="field">
+          <label>NOME</label>
+          <input id="edit-name"/>
+        </div>
+
+        <div class="field">
+          <label>CONTEÚDO</label>
+
+          <div class="editor-wrapper">
+
+            <div class="toolbar">
+              <button id="edit-bold-btn" class="toolbar-btn"></button>
+              <button id="edit-italic-btn" class="toolbar-btn"></button>
+              <div class="divider"></div>
+              <button id="edit-list-btn" class="toolbar-btn"></button>
+            </div>
+
+            <div
+              id="edit-rich-editor"
+              class="rich-editor"
+              contenteditable="true"
+            ></div>
+
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="update-macro-btn" class="primary-btn">
+            Salvar
+          </button>
+
+          <button id="cancel-edit-btn" class="secondary-btn">
+            Cancelar
+          </button>
+        </div>
+
       </div>
+
     </div>
 
+    <!-- Aba de Visualização de Macros -->
     <div id="visualizar" class="tab-content">
-      <input id="search-input" placeholder="Buscar macros..." />
+
+      <div class="search-wrapper">
+        <input
+          id="search-input"
+          class="search-input"
+          placeholder="Buscar por nome ou atalho..."
+        />
+      </div>
+
       <div id="macros-list"></div>
+
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">👻</div>
+
+        <h3>Nenhuma macro ainda</h3>
+
+        <p>Crie sua primeira na aba “Criar”.</p>
+      </div>
+
+      <div class="bottom-actions">
+
+        <button id="export-btn" class="secondary-btn">
+          ⬇ Exportar
+        </button>
+
+        <button id="import-btn" class="secondary-btn">
+          ⬆ Importar
+        </button>
+
+        <input
+          type="file"
+          id="import-file"
+          accept="application/json"
+          hidden
+        />
+
+      </div>
+
     </div>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+      Desenvolvido por <strong>Lara Corsini</strong>
+    </footer>
+
   </div>
 
   <script src="popup.js"></script>

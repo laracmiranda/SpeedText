@@ -3,18 +3,35 @@
   "name": "Gerenciador de Macros de Texto",
   "version": "1.1.0",
   "description": "Crie e gerencie atalhos de texto para preenchimento rápido em qualquer site, com autocomplete múltiplo.",
+
   "permissions": [
     "storage",
     "activeTab",
     "scripting"
   ],
+
   "host_permissions": [
     "<all_urls>"
   ],
+
+  "icons": {
+    "16": "icons/logo.png",
+    "32": "icons/logo.png",
+    "48": "icons/logo.png",
+    "128": "icons/logo.png"
+  },
+
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Gerenciar Macros"
+    "default_title": "Gerenciar Macros",
+
+    "default_icon": {
+      "16": "icons/logo.png",
+      "32": "icons/logo.png",
+      "48": "icons/logo.png"
+    }
   },
+
   "content_scripts": [
     {
       "matches": [
@@ -26,9 +43,10 @@
       ],
       "js": ["content.js"],
       "run_at": "document_end",
-      "all_frames": true  
+      "all_frames": true
     }
   ],
+
   "background": {
     "service_worker": "background.js"
   }
