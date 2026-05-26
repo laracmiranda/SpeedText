@@ -16,10 +16,10 @@ Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos in
 
 ## 📸 Demonstração rápida
 
-# Extensão
-<img src="./site/assets/SpeedTextGIF.gif" alt="SpeedText" width="300"/>
+### Extensão
+<img src="./site/assets/SpeedTextGIF.gif" alt="SpeedText" width="250"/>
 
-# Extensão
+### Preview
 <img src="./site/assets/PreviewGIF.gif" alt="Preview" width="300"/>
 
 ---
