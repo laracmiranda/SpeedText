@@ -34,9 +34,8 @@ Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos in
 * Detecção automática de Dark / Light Mode
 * Importação de macros via `.json`
 * Exportação de macros para backup
-* Atualização instantânea das macros sem reiniciar
+* Atualização instantânea das macros 
 * Compatível com Gmail, Google Chat, Movidesk e outros sistemas web
-* Interface moderna inspirada em apps desktop
 * Suporte a múltiplas macros simultaneamente
 * Sistema otimizado com cache local
 
@@ -130,7 +129,7 @@ O SpeedText exibirá sugestões automaticamente.
 | Tecla   | Ação                    |
 | ------- | ----------------------- |
 | `↑` `↓` | Navegar entre sugestões |
-| `Enter` | Aplicar macro           |
+| `Mouse click` | Aplicar macro           |
 | `Tab`   | Aplicar macro           |
 | `Esc`   | Fechar sugestões        |
 
@@ -149,21 +148,6 @@ speedtext/
 ├── manifest.json
 └── README.md
 ```
-
----
-
-## 🚀 Diferenciais
-
-O SpeedText foi desenvolvido pensando em produtividade real.
-
-Ao invés de apenas substituir texto simples, ele:
-
-* Funciona em rich text editors
-* Detecta inputs dinâmicos automaticamente
-* Mantém compatibilidade com apps modernos
-* Possui autocomplete visual elegante
-* Atualiza macros em tempo real
-* Possui arquitetura otimizada e desacoplada
 
 ---
 
@@ -199,4 +183,4 @@ Este projeto está licenciado sob a licença **GNU General Public License v2.0 (
 
 ---
 
-> *“Menos repetição. Mais velocidade.”*
+> 💫 *“Menos repetição. Mais velocidade.”*
