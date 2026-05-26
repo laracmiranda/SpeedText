@@ -10,7 +10,7 @@
 Extensão para Chrome que permite criar, gerenciar e expandir macros de texto em qualquer site com autocomplete inteligente.
 Transforme atalhos como `\email`, `\pix` ou `\assinatura` em textos completos instantaneamente.
 
-👉 Baixe a extensão: [SpeedText](https://github.com/laracmiranda/SpeedText/blob/main/site/SpeedText.zip)
+👉 Baixe a extensão: [SpeedText](https://speedtext-extension.vercel.app/)
 
 ---
 
