@@ -1,9 +1,15 @@
 /*
  * SpeedText
- * Copyright (C) 2026 Lara Miranda
+ * Copyright (c) 2026 Lara Corsini de Miranda
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License v2.0.
+ * This source code may be viewed, studied, and used for personal
+ * and non-commercial purposes only.
+ *
+ * Commercial use, redistribution, resale, relicensing, modification
+ * for commercial purposes, or removal of author credits is prohibited
+ * without prior written permission from the author.
+ *
+ * See the LICENSE file for full terms.
  */
 
 //Gerencia mensagens para fallback
