@@ -178,8 +178,8 @@ git push origin feature/minha-feature
 
 ## 📃 Licença
 
-Este projeto está licenciado sob a licença **GNU General Public License v2.0 (GPL-2.0).**
-
+Copyright (c) 2026 Lara Miranda
+Todos os direitos reservados.
 
 ---
 
